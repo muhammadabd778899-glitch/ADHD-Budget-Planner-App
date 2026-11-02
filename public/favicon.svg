@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tide">
+  <rect width="64" height="64" rx="15" fill="#1d3430" />
+  <path
+    d="M8 38c5.5-8.5 11-8.5 16.5 0s11 8.5 16.5 0 11-8.5 16.5 0"
+    fill="none"
+    stroke="#f7f2e8"
+    stroke-width="4.6"
+    stroke-linecap="round"
+  />
+  <path
+    d="M8 25c5.5-8.5 11-8.5 16.5 0s11 8.5 16.5 0 11-8.5 16.5 0"
+    fill="none"
+    stroke="#f7f2e8"
+    stroke-width="4.6"
+    stroke-linecap="round"
+    opacity="0.55"
+  />
+</svg>

@@ -1,0 +1,466 @@
+/* ==========================================================================
+   Responsive adjustments and motion preferences
+   ========================================================================== */
+
+@media (max-width: 1180px) {
+  .dashboard-grid__wide {
+    grid-column: span 7;
+  }
+
+  .dashboard-grid__next,
+  .dashboard-grid__progress {
+    grid-column: span 5;
+  }
+
+  .help-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1040px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reports-grid,
+  .help-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .report-plan {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-grid__wide,
+  .dashboard-grid__next,
+  .dashboard-grid__progress {
+    grid-column: span 12;
+  }
+
+  .dashboard-grid__next {
+    order: -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .safe-card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+
+  .safe-card__aside {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+    padding: var(--space-4) 0 0;
+    border-top: 1px solid rgb(255 255 255 / 14%);
+    border-left: 0;
+  }
+
+  .safe-card__aside-item {
+    display: grid;
+    justify-content: start;
+    gap: 0.15rem;
+    border-bottom: 0;
+    padding: 0;
+  }
+
+  .safe-card__aside-item strong {
+    white-space: normal;
+  }
+
+  .two-column,
+  .debt-grid,
+  .savings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .toast-region {
+    bottom: calc(var(--mobile-nav-height) + 0.9rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .update-banner {
+    bottom: calc(var(--mobile-nav-height) + 0.9rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .page {
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-10);
+  }
+}
+
+@media (max-width: 720px) {
+  .onboarding__points {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .onboarding__points > div {
+    padding: 0.5rem 0.65rem;
+  }
+
+  .storage-grid,
+  .about-grid,
+  .import-preview__meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .month-switcher {
+    padding: var(--space-3);
+  }
+
+  .month-switcher__label h2 {
+    font-size: var(--text-xl);
+  }
+
+  .bill-row__side {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .bill-row {
+    flex-wrap: wrap;
+  }
+
+  .bill-row__main {
+    flex: 1 1 calc(100% - 4.2rem);
+  }
+
+  .bill-row__side {
+    flex: 1 1 100%;
+    margin-left: 0;
+    padding-top: var(--space-2);
+    border-top: 1px dashed var(--line);
+  }
+
+  .bill-row__side .bill-row__amount {
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .form-grid--2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filter-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filter-control,
+  .filter-control--search {
+    min-width: 0;
+  }
+
+  .filter-control .segmented {
+    width: 100%;
+  }
+
+  .filter-control .segmented__option {
+    flex: 1;
+    text-align: center;
+  }
+
+  .table-wrap .data-table {
+    min-width: 30rem;
+  }
+
+  .savings-card__amounts,
+  .debt-card__facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .debt-card__facts > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .savings-card__amounts > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .page-header {
+    align-items: flex-start;
+  }
+
+  .page-header__actions {
+    width: 100%;
+  }
+
+  .safe-card__actions .button {
+    flex: 1;
+  }
+
+  .card {
+    padding: var(--space-4);
+  }
+
+  .dialog__header {
+    padding: var(--space-4) var(--space-4) var(--space-2);
+  }
+
+  .dialog__body {
+    padding: var(--space-2) var(--space-4) var(--space-4);
+  }
+
+  .dialog__footer {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .form-actions {
+    justify-content: stretch;
+  }
+
+  .form-actions .button {
+    flex: 1;
+  }
+
+  .trend-chart {
+    height: 11rem;
+  }
+
+  .help-quick-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .start-steps li {
+    flex-wrap: wrap;
+  }
+
+  .start-steps li > .button {
+    margin-left: calc(1.7rem + var(--space-3));
+  }
+
+  .onboarding {
+    padding: var(--space-4) var(--space-4) var(--space-3);
+  }
+
+  .onboarding__main {
+    padding-block: var(--space-4);
+  }
+}
+
+@media (max-width: 460px) {
+  .metric-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metric-card {
+    min-height: 0;
+  }
+
+  .safe-card {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .safe-card__aside {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .safe-card__aside-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid rgb(255 255 255 / 10%);
+  }
+
+  .safe-card__aside-item:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .storage-grid,
+  .about-grid,
+  .import-preview__meta,
+  .report-plan {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .report-plan > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .report-plan > div:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .topbar {
+    gap: var(--space-2);
+    padding-inline: var(--space-4);
+  }
+
+  .topbar__wordmark {
+    font-size: 1.15rem;
+  }
+
+  .topbar__actions .button span {
+    display: none;
+  }
+
+  .topbar__actions .button {
+    width: 2.4rem;
+    min-width: 2.4rem;
+    padding: 0;
+  }
+
+  .page-stack {
+    gap: var(--space-5);
+  }
+
+  .page {
+    padding-inline: var(--space-4);
+  }
+
+  .transaction-row__actions {
+    opacity: 1;
+  }
+
+  .card__action {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .onboarding__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .onboarding__actions .button {
+    width: 100%;
+  }
+
+  .onboarding__actions .button:last-child {
+    margin-left: 0;
+  }
+
+  .toast-region {
+    right: var(--space-2);
+    left: var(--space-2);
+    width: auto;
+  }
+
+  .update-banner {
+    width: calc(100vw - 1rem);
+  }
+
+  .dialog {
+    width: calc(100% - 1rem);
+  }
+}
+
+@media (max-width: 360px) {
+  .page {
+    padding-inline: var(--space-3);
+  }
+
+  .card {
+    padding: var(--space-3);
+  }
+
+  .safe-card {
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .safe-card__amount {
+    font-size: 2.3rem;
+  }
+
+  .bill-row__date {
+    width: 3rem;
+  }
+
+  .nav-link,
+  .segmented__option {
+    font-size: 0.7rem;
+  }
+
+  .badge {
+    font-size: 0.62rem;
+  }
+
+  .mobile-nav__link span {
+    font-size: 0.6rem;
+  }
+
+  .update-banner {
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .skeleton__line {
+    animation: none;
+  }
+
+  .dialog__panel,
+  .toast,
+  .update-banner,
+  .onboarding__panel {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Print
+   -------------------------------------------------------------------------- */
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .sidebar,
+  .topbar,
+  .mobile-nav,
+  .toast-region,
+  .update-banner,
+  .skip-link,
+  .button {
+    display: none !important;
+  }
+
+  .app-main {
+    margin-left: 0;
+  }
+
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .card,
+  .safe-card {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+}

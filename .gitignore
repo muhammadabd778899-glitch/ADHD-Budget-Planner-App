@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+coverage
+playwright-report
+test-results
+playwright/.cache
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.eslint-report.json
