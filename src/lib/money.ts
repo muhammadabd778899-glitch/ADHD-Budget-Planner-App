@@ -141,6 +141,7 @@ export function formatMoneyShort(minor: number, currency = 'USD', locale = 'en-U
       style: 'currency',
       currency,
       notation: whole ? 'compact' : 'standard',
+      minimumFractionDigits: 0,
       maximumFractionDigits: whole ? 1 : digits,
     }).format(major);
   } catch {
