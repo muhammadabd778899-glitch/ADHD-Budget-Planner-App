@@ -143,7 +143,7 @@ export function DebtFormDialog({
       open={open}
       onClose={onClose}
       title={debt ? 'Edit debt' : 'Add a debt'}
-      description="Enter the balance as it is today. Record payments as you make them and Tide keeps the balance in step."
+      description="Enter the balance as it is today. Record payments as you make them and Harbor keeps the balance in step."
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={submitting}>

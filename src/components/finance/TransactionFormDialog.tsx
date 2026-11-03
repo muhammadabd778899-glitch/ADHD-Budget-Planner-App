@@ -43,6 +43,7 @@ export function TransactionFormDialog({
   const [date, setDate] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [accountId, setAccountId] = useState('');
   const [notes, setNotes] = useState('');
   const [pending, setPending] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,6 +51,7 @@ export function TransactionFormDialog({
   const [submitting, setSubmitting] = useState(false);
 
   const isBillPayment = Boolean(transaction?.billOccurrenceId);
+  const accounts = useMemo(() => snapshot?.accounts ?? [], [snapshot?.accounts]);
   const categories = useMemo(
     () =>
       (snapshot?.categories ?? []).filter(
@@ -66,12 +68,13 @@ export function TransactionFormDialog({
     setDate(transaction?.date ?? todayISO());
     setDescription(transaction?.description ?? '');
     setCategoryId(transaction?.categoryId ?? '');
+    setAccountId(transaction?.accountId ?? accounts.find((account) => !account.archived)?.id ?? '');
     setNotes(transaction?.notes ?? '');
     setPending(transaction?.status === 'pending');
     setErrors({});
     setFormErrors([]);
     setSubmitting(false);
-  }, [open, transaction, currency]);
+  }, [open, transaction, currency, accounts]);
 
   useEffect(() => {
     if (!open) return;
@@ -124,6 +127,7 @@ export function TransactionFormDialog({
         billOccurrenceId: transaction?.billOccurrenceId ?? null,
         debtId: transaction?.debtId ?? null,
         incomeSourceId: transaction?.incomeSourceId ?? null,
+        accountId: accountId || null,
         sample: transaction?.sample ?? false,
       };
       if (transaction) await actions.updateTransaction(transaction.id, input);
@@ -228,6 +232,28 @@ export function TransactionFormDialog({
             ))}
           </Select>
         </Field>
+        {accounts.length > 1 ? (
+          <Field
+            label="Account"
+            htmlFor={`${baseId}-account`}
+            hint="Which account the money moved through."
+          >
+            <Select
+              id={`${baseId}-account`}
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
+              disabled={isBillPayment}
+            >
+              {accounts
+                .filter((account) => !account.archived || account.id === accountId)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+            </Select>
+          </Field>
+        ) : null}
         {type === 'expense' && !isBillPayment ? (
           <Checkbox
             label="Still pending"

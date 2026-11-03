@@ -1,12 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 import { Badge, Disclosure, EmptyState, InlineNotice, ProgressBar } from '@/components/ui/Feedback';
+import { Select } from '@/components/ui/Form';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { BillOccurrenceRow, TransactionRow } from '@/components/finance/rows';
 import { useAppData } from '@/state/AppDataProvider';
 import { calculateSafeToSpend } from '@/domain/safeToSpend';
+import { accountSafeToSpendInput, belongsToAccount } from '@/domain/accounts';
 import { debtSummary, totalDebtMinor } from '@/domain/debt';
 import { savingsSummary, totalSavingsMinor } from '@/domain/savings';
 import { addDays, daysBetween, formatDateOnly, relativeDayLabel, todayISO } from '@/lib/dates';
@@ -22,6 +25,14 @@ function greeting(name: string): string {
 
 export function DashboardPage() {
   const { snapshot, actions, busy, openQuickAdd } = useAppData();
+  const [focusMode, setFocusMode] = useState(() => {
+    try {
+      return localStorage.getItem('tide-focus-mode') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [accountId, setAccountId] = useState('all');
   const today = todayISO();
   const categoryMap = useMemo(
     () => new Map((snapshot?.categories ?? []).map((category) => [category.id, category])),
@@ -43,18 +54,49 @@ export function DashboardPage() {
     snapshot;
   const currency = settings.currency;
   const locale = settings.locale;
-  const breakdown = calculateSafeToSpend({
-    settings,
-    transactions,
-    savingsEntries,
-    billOccurrences,
-    bills,
-    incomeSources: snapshot.incomeSources,
-    today,
-  });
+  const accounts = snapshot.accounts;
+  const selectedAccountId = accounts.some((account) => account.id === accountId)
+    ? accountId
+    : 'all';
+  const selectedAccount =
+    selectedAccountId === 'all'
+      ? null
+      : (accounts.find((account) => account.id === selectedAccountId) ?? null);
+  const scopedBills =
+    selectedAccountId === 'all'
+      ? bills
+      : bills.filter((bill) => belongsToAccount(bill.accountId, selectedAccountId));
+  const scopedBillIds = new Set(scopedBills.map((bill) => bill.id));
+  const scopedOccurrences =
+    selectedAccountId === 'all'
+      ? billOccurrences
+      : billOccurrences.filter((occurrence) => scopedBillIds.has(occurrence.billId));
+  const scopedTransactions =
+    selectedAccountId === 'all'
+      ? transactions
+      : transactions.filter((transaction) =>
+          belongsToAccount(transaction.accountId, selectedAccountId),
+        );
+  const scopedUpcoming =
+    selectedAccountId === 'all'
+      ? upcoming
+      : upcoming.filter((occurrence) => scopedBillIds.has(occurrence.billId));
+  const breakdown = calculateSafeToSpend(
+    selectedAccountId === 'all'
+      ? {
+          settings,
+          transactions,
+          savingsEntries,
+          billOccurrences,
+          bills,
+          incomeSources: snapshot.incomeSources,
+          today,
+        }
+      : accountSafeToSpendInput(snapshot, selectedAccountId, today),
+  );
 
-  const nextOccurrence = upcoming[0];
-  const overdueCount = billOccurrences.filter(
+  const nextOccurrence = scopedUpcoming[0];
+  const overdueCount = scopedOccurrences.filter(
     (occurrence) => occurrence.status === 'unpaid' && occurrence.dueDate < today,
   ).length;
   const activeDebts = debts.filter((debt) => !debt.archived);
@@ -63,13 +105,44 @@ export function DashboardPage() {
   const savingsTotal = totalSavingsMinor(activeGoals, savingsEntries);
   const nextBillDays = nextOccurrence ? daysBetween(today, nextOccurrence.dueDate) : null;
   const hasSchedule = snapshot.incomeSources.some((source) => source.active);
-  const hasData = transactions.length > 0 || bills.length > 0 || snapshot.incomeSources.length > 0;
+  const hasData =
+    transactions.length > 0 ||
+    bills.length > 0 ||
+    snapshot.incomeSources.length > 0 ||
+    debts.length > 0 ||
+    savingsGoals.length > 0 ||
+    savingsEntries.length > 0;
+
+  const daysToPayday = breakdown.nextPayday ? daysBetween(today, breakdown.nextPayday) : null;
+  const daysLeftInWindow = Math.max(1, daysBetween(today, breakdown.planWindow.end) + 1);
+  const windowDays = Math.max(
+    1,
+    daysBetween(breakdown.planWindow.start, breakdown.planWindow.end) + 1,
+  );
+  const dailyAllowanceMinor =
+    breakdown.safeToSpendMinor > 0 ? Math.round(breakdown.safeToSpendMinor / daysLeftInWindow) : 0;
+  const runwayProgress = Math.min(
+    100,
+    Math.max(0, ((windowDays - daysLeftInWindow) / windowDays) * 100),
+  );
+
+  function toggleFocusMode() {
+    setFocusMode((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem('tide-focus-mode', next ? '1' : '0');
+      } catch {
+        // A blocked storage API must not stop the view from changing.
+      }
+      return next;
+    });
+  }
 
   const nextAction = (() => {
     if (!hasSchedule) {
       return {
         title: 'Add your pay schedule',
-        body: 'Tide uses your next payday to decide how far ahead to reserve bills.',
+        body: 'Harbor uses your next payday to decide how far ahead to reserve bills.',
         to: '/income',
         label: 'Add income',
         icon: 'calendar' as const,
@@ -105,7 +178,7 @@ export function DashboardPage() {
     if (nextBillDays !== null && nextBillDays <= 7) {
       return {
         title: nextBillDays === 0 ? 'A bill is due today' : 'A bill is coming up',
-        body: 'Mark it paid when it leaves your account. Tide records one expense and updates your plan.',
+        body: 'Mark it paid when it leaves your account. Harbor records one expense and updates your plan.',
         to: '/bills',
         label: 'Open bills',
         icon: 'calendar-check' as const,
@@ -128,10 +201,20 @@ export function DashboardPage() {
         description={
           hasData
             ? 'One calm number, and the few things that matter next.'
-            : 'Start small. Tide gets more useful with each piece you add.'
+            : 'Start small. Harbor gets more useful with each piece you add.'
         }
         actions={
           <>
+            <button
+              type="button"
+              className="button button--ghost button--sm focus-toggle"
+              aria-pressed={focusMode}
+              aria-label={focusMode ? 'Turn off focus mode' : 'Turn on focus mode'}
+              onClick={toggleFocusMode}
+            >
+              <span className="focus-toggle__switch" aria-hidden="true" />
+              <span>Focus</span>
+            </button>
             <Button icon="plus" onClick={() => openQuickAdd({ type: 'expense', date: today })}>
               Add expense
             </Button>
@@ -153,6 +236,30 @@ export function DashboardPage() {
         <div className="safe-card__main">
           <div className="safe-card__topline">
             <p className="eyebrow">Safe to spend</p>
+            {accounts.length > 1 ? (
+              <label className="safe-account">
+                <span className="sr-only">Account</span>
+                <Select
+                  value={selectedAccountId}
+                  onChange={(event) => setAccountId(event.target.value)}
+                  aria-label="Account for safe to spend"
+                >
+                  <option value="all">All accounts</option>
+                  {accounts
+                    .filter(
+                      (account) =>
+                        !account.archived ||
+                        account.id === selectedAccountId ||
+                        account.id === accountId,
+                    )
+                    .map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name}
+                      </option>
+                    ))}
+                </Select>
+              </label>
+            ) : null}
             <Badge tone="neutral" icon="calendar">
               {breakdown.planWindow.label}
               {breakdown.planWindow.mode === 'paycheck' && breakdown.planWindow.nextPayday
@@ -171,6 +278,30 @@ export function DashboardPage() {
             {formatMoney(breakdown.reservedBillsMinor, currency, locale)} reserved bills −{' '}
             {formatMoney(breakdown.cushionMinor, currency, locale)} cushion
           </p>
+          <div className="safe-card__runway">
+            <div className="runway__labels">
+              <span>
+                <strong>{daysLeftInWindow}</strong> {daysLeftInWindow === 1 ? 'day' : 'days'} left
+                in this window
+                {daysToPayday !== null && breakdown.planWindow.mode === 'paycheck'
+                  ? ` · payday in ${daysToPayday} ${daysToPayday === 1 ? 'day' : 'days'}`
+                  : ''}
+              </span>
+              <span>
+                {dailyAllowanceMinor > 0 ? (
+                  <>
+                    about <strong>{formatMoney(dailyAllowanceMinor, currency, locale)}</strong> /
+                    day
+                  </>
+                ) : (
+                  'No daily allowance left'
+                )}
+              </span>
+            </div>
+            <div className="runway__track" aria-hidden="true">
+              <div className="runway__fill" style={{ width: `${runwayProgress}%` }} />
+            </div>
+          </div>
           <div className="safe-card__actions">
             <Button
               variant="secondary"
@@ -186,7 +317,7 @@ export function DashboardPage() {
         </div>
         <div className="safe-card__aside">
           <div className="safe-card__aside-item">
-            <span>Available now</span>
+            <span>Available now{selectedAccount ? ` · ${selectedAccount.name}` : ''}</span>
             <strong>{formatMoney(breakdown.cashOnHandMinor, currency, locale)}</strong>
           </div>
           <div className="safe-card__aside-item">
@@ -197,6 +328,24 @@ export function DashboardPage() {
             <span>Cushion</span>
             <strong>{formatMoney(breakdown.cushionMinor, currency, locale)}</strong>
           </div>
+        </div>
+      </section>
+
+      <section className="right-now" aria-labelledby="right-now-title">
+        <span className="right-now__icon" aria-hidden="true">
+          <Icon name={nextAction.icon} size={20} />
+        </span>
+        <div className="right-now__text">
+          <p className="right-now__eyebrow">Right now</p>
+          <h2 className="right-now__title" id="right-now-title">
+            {nextAction.title}
+          </h2>
+          <p className="right-now__body">{nextAction.body}</p>
+        </div>
+        <div className="right-now__actions">
+          <ButtonLink to={nextAction.to} icon={nextAction.icon} size="md">
+            {nextAction.label}
+          </ButtonLink>
         </div>
       </section>
 
@@ -222,7 +371,7 @@ export function DashboardPage() {
                 <span className="start-steps__num">1</span>
                 <div>
                   <strong>Add one income source</strong>
-                  <p>So Tide knows when the next payday arrives and where the window ends.</p>
+                  <p>So Harbor knows when the next payday arrives and where the window ends.</p>
                 </div>
                 <ButtonLink to="/income" size="sm" variant="secondary">
                   Add
@@ -272,57 +421,62 @@ export function DashboardPage() {
 
       {hasData ? (
         <>
-          <div className="metric-grid">
-            <Card className="metric-card">
-              <p className="metric__label">Next payday</p>
-              <p className="metric__value">
-                {breakdown.nextPayday
-                  ? formatDateOnly(breakdown.nextPayday, locale, 'medium')
-                  : 'No schedule yet'}
-              </p>
-              <p className="metric__note">
-                {breakdown.nextPayday
-                  ? `${formatMoney(breakdown.nextPaydayAmountMinor, currency, locale)} expected · ${relativeDayLabel(breakdown.nextPayday, today, locale)}`
-                  : 'Add an income source to project paydays.'}
-              </p>
-            </Card>
-            <Card className="metric-card">
-              <p className="metric__label">Reserved bills</p>
-              <p className="metric__value">
-                {formatMoney(breakdown.reservedBillsMinor, currency, locale)}
-              </p>
-              <p className="metric__note">
-                {breakdown.reservedBillCount === 0
-                  ? 'Nothing due in this window.'
-                  : `${breakdown.reservedBillCount} unpaid ${breakdown.reservedBillCount === 1 ? 'occurrence' : 'occurrences'} through the window.`}
-              </p>
-            </Card>
-            <Card className="metric-card">
-              <p className="metric__label">Spent this month</p>
-              <p className="metric__value">
-                {formatMoney(breakdown.spentThisMonthMinor, currency, locale)}
-              </p>
-              <p className="metric__note">
-                Received {formatMoney(breakdown.incomeThisMonthMinor, currency, locale)} this month.
-              </p>
-            </Card>
-            <Card className="metric-card">
-              <p className="metric__label">Expected across the window</p>
-              <p className="metric__value">
-                {formatMoney(breakdown.expectedIncomeInWindowMinor, currency, locale)}
-              </p>
-              <p className="metric__note">
-                Shown separately. Expected money never inflates safe to spend.
-              </p>
-            </Card>
-          </div>
+          {!focusMode ? (
+            <div className="metric-grid">
+              <Card className="metric-card">
+                <p className="metric__label">Next payday</p>
+                <p className="metric__value">
+                  {breakdown.nextPayday
+                    ? formatDateOnly(breakdown.nextPayday, locale, 'medium')
+                    : 'No schedule yet'}
+                </p>
+                <p className="metric__note">
+                  {breakdown.nextPayday
+                    ? `${formatMoney(breakdown.nextPaydayAmountMinor, currency, locale)} expected · ${relativeDayLabel(breakdown.nextPayday, today, locale)}`
+                    : 'Add an income source to project paydays.'}
+                </p>
+              </Card>
+              <Card className="metric-card">
+                <p className="metric__label">Reserved bills</p>
+                <p className="metric__value">
+                  {formatMoney(breakdown.reservedBillsMinor, currency, locale)}
+                </p>
+                <p className="metric__note">
+                  {breakdown.reservedBillCount === 0
+                    ? 'Nothing due in this window.'
+                    : `${breakdown.reservedBillCount} unpaid ${breakdown.reservedBillCount === 1 ? 'occurrence' : 'occurrences'} through the window.`}
+                </p>
+              </Card>
+              <Card className="metric-card">
+                <p className="metric__label">Spent this month</p>
+                <p className="metric__value">
+                  {formatMoney(breakdown.spentThisMonthMinor, currency, locale)}
+                </p>
+                <p className="metric__note">
+                  Received {formatMoney(breakdown.incomeThisMonthMinor, currency, locale)} this
+                  month.
+                </p>
+              </Card>
+              <Card className="metric-card">
+                <p className="metric__label">Expected in this window</p>
+                <p className="metric__value">
+                  {formatMoney(breakdown.expectedIncomeInWindowMinor, currency, locale)}
+                </p>
+                <p className="metric__note">
+                  {breakdown.expectedIncomeInWindowMinor === 0 && breakdown.nextPayday
+                    ? `Next payday is ${formatDateOnly(breakdown.nextPayday, locale, 'medium')}, just after this window. Never added to safe to spend.`
+                    : 'Includes any paydays already received. Never added to safe to spend.'}
+                </p>
+              </Card>
+            </div>
+          ) : null}
 
           <div className="dashboard-grid">
-            <Card className="dashboard-grid__wide">
+            <Card className={`dashboard-grid__wide${focusMode ? ' dashboard-grid__full' : ''}`}>
               <CardHeader
                 title="What is coming up"
                 description={
-                  upcoming.length === 0
+                  scopedUpcoming.length === 0
                     ? 'No unpaid bills in the next 30 days.'
                     : 'Unpaid bills, soonest first.'
                 }
@@ -333,7 +487,7 @@ export function DashboardPage() {
                 }
               />
               <CardBody>
-                {upcoming.length === 0 ? (
+                {scopedUpcoming.length === 0 ? (
                   <EmptyState
                     icon="receipt"
                     title="Nothing due soon"
@@ -346,7 +500,7 @@ export function DashboardPage() {
                   />
                 ) : (
                   <ul className="row-list">
-                    {upcoming.map((occurrence: BillOccurrence) => {
+                    {scopedUpcoming.map((occurrence: BillOccurrence) => {
                       const bill = bills.find((row) => row.id === occurrence.billId);
                       return (
                         <BillOccurrenceRow
@@ -369,124 +523,118 @@ export function DashboardPage() {
               </CardBody>
             </Card>
 
-            <Card className="dashboard-grid__next">
-              <CardHeader eyebrow="Next best step" title={nextAction.title} />
-              <CardBody>
-                <p className="next-step__body">{nextAction.body}</p>
-                <ButtonLink to={nextAction.to} icon={nextAction.icon} size="sm">
-                  {nextAction.label}
-                </ButtonLink>
-              </CardBody>
-            </Card>
-
-            <Card className="dashboard-grid__wide">
-              <CardHeader
-                title="Recent activity"
-                description="The last few things you recorded."
-                action={
-                  <ButtonLink to="/spending" variant="ghost" size="sm">
-                    View all
-                  </ButtonLink>
-                }
-              />
-              <CardBody>
-                {transactions.length === 0 ? (
-                  <EmptyState
-                    icon="wallet"
-                    title="No spending logged yet"
-                    description="Add an expense to see it here and keep the picture honest."
+            {!focusMode ? (
+              <>
+                <Card className="dashboard-grid__wide">
+                  <CardHeader
+                    title="Recent activity"
+                    description="The last few things you recorded."
                     action={
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        icon="plus"
-                        onClick={() => openQuickAdd({ type: 'expense', date: today })}
-                      >
-                        Add expense
-                      </Button>
+                      <ButtonLink to="/spending" variant="ghost" size="sm">
+                        View all
+                      </ButtonLink>
                     }
                   />
-                ) : (
-                  <ul className="row-list">
-                    {transactions.slice(0, 5).map((transaction) => (
-                      <TransactionRow
-                        key={transaction.id}
-                        transaction={transaction}
-                        category={
-                          transaction.categoryId
-                            ? categoryMap.get(transaction.categoryId)
-                            : undefined
+                  <CardBody>
+                    {scopedTransactions.length === 0 ? (
+                      <EmptyState
+                        icon="wallet"
+                        title="No spending logged yet"
+                        description="Add an expense to see it here and keep the picture honest."
+                        action={
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            icon="plus"
+                            onClick={() => openQuickAdd({ type: 'expense', date: today })}
+                          >
+                            Add expense
+                          </Button>
                         }
-                        currency={currency}
-                        locale={locale}
                       />
-                    ))}
-                  </ul>
-                )}
-              </CardBody>
-            </Card>
+                    ) : (
+                      <ul className="row-list">
+                        {scopedTransactions.slice(0, 5).map((transaction) => (
+                          <TransactionRow
+                            key={transaction.id}
+                            transaction={transaction}
+                            category={
+                              transaction.categoryId
+                                ? categoryMap.get(transaction.categoryId)
+                                : undefined
+                            }
+                            currency={currency}
+                            locale={locale}
+                          />
+                        ))}
+                      </ul>
+                    )}
+                  </CardBody>
+                </Card>
 
-            <Card className="dashboard-grid__progress">
-              <CardHeader eyebrow="Progress" title="Debt & savings" />
-              <CardBody>
-                <div className="progress-summary">
-                  <div className="progress-summary__row">
-                    <div>
-                      <p className="progress-summary__label">Debt remaining</p>
-                      <p className="progress-summary__value">
-                        {formatMoney(debtTotal, currency, locale)}
-                      </p>
+                <Card className="dashboard-grid__progress">
+                  <CardHeader eyebrow="Progress" title="Debt & savings" />
+                  <CardBody>
+                    <div className="progress-summary">
+                      <div className="progress-summary__row">
+                        <div>
+                          <p className="progress-summary__label">Debt remaining</p>
+                          <p className="progress-summary__value">
+                            {formatMoney(debtTotal, currency, locale)}
+                          </p>
+                        </div>
+                        <ButtonLink to="/debt" variant="ghost" size="sm">
+                          Open
+                        </ButtonLink>
+                      </div>
+                      {activeDebts.slice(0, 2).map((debt) => {
+                        const summary = debtSummary(debt, transactions);
+                        return (
+                          <ProgressBar
+                            key={debt.id}
+                            label={debt.name}
+                            value={summary.progress}
+                            tone="rose"
+                            size="sm"
+                            showValue={false}
+                          />
+                        );
+                      })}
+                      <div className="progress-summary__divider" />
+                      <div className="progress-summary__row">
+                        <div>
+                          <p className="progress-summary__label">Saved across goals</p>
+                          <p className="progress-summary__value">
+                            {formatMoney(savingsTotal, currency, locale)}
+                          </p>
+                        </div>
+                        <ButtonLink to="/savings" variant="ghost" size="sm">
+                          Open
+                        </ButtonLink>
+                      </div>
+                      {activeGoals.slice(0, 2).map((goal) => {
+                        const summary = savingsSummary(goal, savingsEntries);
+                        return (
+                          <ProgressBar
+                            key={goal.id}
+                            label={`${goal.name} · ${formatMoneyShort(summary.currentMinor, currency, locale)} of ${formatMoneyShort(goal.targetMinor, currency, locale)}`}
+                            value={summary.progress}
+                            tone="sage"
+                            size="sm"
+                            showValue={false}
+                          />
+                        );
+                      })}
+                      {activeDebts.length === 0 && activeGoals.length === 0 ? (
+                        <p className="progress-summary__empty">
+                          Add a debt or savings goal to see gentle progress here.
+                        </p>
+                      ) : null}
                     </div>
-                    <ButtonLink to="/debt" variant="ghost" size="sm">
-                      Open
-                    </ButtonLink>
-                  </div>
-                  {activeDebts.slice(0, 2).map((debt) => {
-                    const summary = debtSummary(debt, transactions);
-                    return (
-                      <ProgressBar
-                        key={debt.id}
-                        label={debt.name}
-                        value={summary.progress}
-                        tone="rose"
-                        size="sm"
-                        showValue={false}
-                      />
-                    );
-                  })}
-                  <div className="progress-summary__divider" />
-                  <div className="progress-summary__row">
-                    <div>
-                      <p className="progress-summary__label">Saved across goals</p>
-                      <p className="progress-summary__value">
-                        {formatMoney(savingsTotal, currency, locale)}
-                      </p>
-                    </div>
-                    <ButtonLink to="/savings" variant="ghost" size="sm">
-                      Open
-                    </ButtonLink>
-                  </div>
-                  {activeGoals.slice(0, 2).map((goal) => {
-                    const summary = savingsSummary(goal, savingsEntries);
-                    return (
-                      <ProgressBar
-                        key={goal.id}
-                        label={`${goal.name} · ${formatMoneyShort(summary.currentMinor, currency, locale)} of ${formatMoneyShort(goal.targetMinor, currency, locale)}`}
-                        value={summary.progress}
-                        tone="sage"
-                        size="sm"
-                        showValue={false}
-                      />
-                    );
-                  })}
-                  {activeDebts.length === 0 && activeGoals.length === 0 ? (
-                    <p className="progress-summary__empty">
-                      Add a debt or savings goal to see gentle progress here.
-                    </p>
-                  ) : null}
-                </div>
-              </CardBody>
-            </Card>
+                  </CardBody>
+                </Card>
+              </>
+            ) : null}
           </div>
 
           <Card>

@@ -38,7 +38,7 @@ describe('App smoke flow', () => {
       await screen.findByRole('heading', { name: /When does money arrive/i }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /open tide/i }));
+    await user.click(screen.getByRole('button', { name: /open harbor/i }));
 
     expect(
       await screen.findByRole('heading', { name: 'Today', level: 1 }, { timeout: 5000 }),

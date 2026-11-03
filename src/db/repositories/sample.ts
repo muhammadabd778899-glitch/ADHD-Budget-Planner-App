@@ -1,18 +1,24 @@
 import type {
+  Account,
   Bill,
   BillOccurrence,
   DateOnly,
   Debt,
+  Envelope,
   IncomeSource,
+  Note,
   SavingsEntry,
   SavingsGoal,
   Transaction,
 } from '@/domain/types';
-import type { TideDatabase } from '@/db/database';
+import type { HarborDatabase } from '@/db/database';
 import { AppError } from '@/db/errors';
 import { nowIso } from '@/lib/ids';
-import { addDays, addMonthsClamped, todayISO } from '@/lib/dates';
+import { addDays, addMonthsClamped, monthKey, todayISO } from '@/lib/dates';
 import { occurrenceDatesInRange } from '@/lib/recurrence';
+import { DEFAULT_ACCOUNT_ID } from '@/domain/accounts';
+
+const SAMPLE_ACCOUNT_ID = 'sample-acct-wallet';
 
 function bill(
   id: string,
@@ -31,7 +37,9 @@ function bill(
     frequency,
     anchorDate,
     endDate: null,
+    secondDay: null,
     categoryId,
+    accountId: DEFAULT_ACCOUNT_ID,
     autoPay: false,
     notes,
     active: true,
@@ -41,12 +49,12 @@ function bill(
   };
 }
 
-export function createSampleRepository(database: TideDatabase, clock: () => DateOnly = todayISO) {
+export function createSampleRepository(database: HarborDatabase, clock: () => DateOnly = todayISO) {
   return {
     async seed(): Promise<{ records: number }> {
       const today = clock();
       const settings = await database.settings.get('app');
-      if (!settings) throw new AppError('NOT_FOUND', 'Tide settings are missing.');
+      if (!settings) throw new AppError('NOT_FOUND', 'Harbor settings are missing.');
       if (settings.sampleDataLoaded) {
         throw new AppError('CONFLICT', 'Sample data is already loaded.');
       }
@@ -58,6 +66,17 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
       const phoneDue = addDays(today, 8);
       const streamingDue = addDays(today, -6);
 
+      const account: Account = {
+        id: SAMPLE_ACCOUNT_ID,
+        name: 'Cash wallet',
+        kind: 'cash',
+        openingBalanceMinor: 8_000,
+        archived: false,
+        sample: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+
       const income: IncomeSource = {
         id: 'sample-inc-paycheck',
         name: 'Paycheck — Northwind Studio',
@@ -66,6 +85,7 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
         anchorDate: lastPayday,
         endDate: null,
         active: true,
+        accountId: DEFAULT_ACCOUNT_ID,
         notes: 'Sample income. Remove it any time in Settings → Data.',
         sample: true,
         createdAt: now,
@@ -128,7 +148,7 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
         streamingOccurrence.paidTransactionId = 'sample-tx-streaming';
       }
 
-      const transactions: Transaction[] = [
+      const transactions: Array<Omit<Transaction, 'accountId'>> = [
         {
           id: 'sample-tx-paycheck',
           type: 'income',
@@ -329,6 +349,14 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
         },
       ];
 
+      const walletTransactionIds = new Set(['sample-tx-coffee', 'sample-tx-transport']);
+      const savedTransactions: Transaction[] = transactions.map((transaction) => ({
+        ...transaction,
+        accountId: walletTransactionIds.has(transaction.id)
+          ? SAMPLE_ACCOUNT_ID
+          : DEFAULT_ACCOUNT_ID,
+      }));
+
       const debts: Debt[] = [
         {
           id: 'sample-debt-visa',
@@ -364,8 +392,11 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
         {
           id: 'sample-goal-emergency',
           name: 'Emergency fund',
+          kind: 'goal',
           targetMinor: 500_000,
           startingMinor: 120_000,
+          monthlyTargetMinor: 0,
+          autoSavePercent: 5,
           targetDate: addMonthsClamped(today, 10),
           color: 'sage',
           notes: 'A buffer for the unexpected.',
@@ -377,8 +408,11 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
         {
           id: 'sample-goal-trip',
           name: 'Japan trip',
+          kind: 'goal',
           targetMinor: 300_000,
           startingMinor: 35_000,
+          monthlyTargetMinor: 20_000,
+          autoSavePercent: 0,
           targetDate: addMonthsClamped(today, 14),
           color: 'sky',
           notes: 'Something to look forward to.',
@@ -387,9 +421,25 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
           createdAt: now,
           updatedAt: now,
         },
+        {
+          id: 'sample-goal-gifts',
+          name: 'Christmas gifts',
+          kind: 'sinking',
+          targetMinor: 60_000,
+          startingMinor: 5_000,
+          monthlyTargetMinor: 5_000,
+          autoSavePercent: 0,
+          targetDate: addMonthsClamped(today, 2),
+          color: 'gold',
+          notes: 'A sinking fund for the same expense every year.',
+          archived: false,
+          sample: true,
+          createdAt: now,
+          updatedAt: now,
+        },
       ];
 
-      const savingsEntries: SavingsEntry[] = [
+      const savingsEntries: Array<Omit<SavingsEntry, 'accountId'>> = [
         {
           id: 'sample-sav-emergency',
           goalId: 'sample-goal-emergency',
@@ -412,10 +462,69 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
         },
       ];
 
+      const savedSavingsEntries: SavingsEntry[] = savingsEntries.map((entry) => ({
+        ...entry,
+        accountId: DEFAULT_ACCOUNT_ID,
+      }));
+
+      const thisMonth = monthKey(today);
+      const envelopes: Envelope[] = [
+        {
+          id: 'sample-env-groceries',
+          name: 'Groceries',
+          categoryId: 'cat-groceries',
+          monthlyAmountMinor: 42_000,
+          rollover: true,
+          startMonth: thisMonth,
+          archived: false,
+          sample: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'sample-env-fun',
+          name: 'Fun money',
+          categoryId: 'cat-fun',
+          monthlyAmountMinor: 15_000,
+          rollover: false,
+          startMonth: thisMonth,
+          archived: false,
+          sample: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ];
+
+      const notes: Note[] = [
+        {
+          id: 'sample-note-brain-dump',
+          kind: 'brain-dump',
+          month: null,
+          text: 'Sample brain dump: move the internet bill to autopay, ask about the annual insurance discount, plan a cheap weekend.',
+          pinned: true,
+          archived: false,
+          sample: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'sample-note-month',
+          kind: 'month',
+          month: thisMonth,
+          text: 'Sample month note: this month felt steadier. Keep the grocery envelope and skip the unused streaming tier.',
+          pinned: false,
+          archived: false,
+          sample: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ];
+
       await database.transaction(
         'rw',
         [
           database.settings,
+          database.accounts,
           database.incomeSources,
           database.bills,
           database.billOccurrences,
@@ -423,15 +532,20 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
           database.debts,
           database.savingsGoals,
           database.savingsEntries,
+          database.envelopes,
+          database.notes,
         ],
         async () => {
+          await database.accounts.put(account);
           await database.incomeSources.put(income);
           await database.bills.bulkPut(bills);
           await database.billOccurrences.bulkPut(occurrences);
-          await database.transactions.bulkPut(transactions);
+          await database.transactions.bulkPut(savedTransactions);
           await database.debts.bulkPut(debts);
           await database.savingsGoals.bulkPut(goals);
-          await database.savingsEntries.bulkPut(savingsEntries);
+          await database.savingsEntries.bulkPut(savedSavingsEntries);
+          await database.envelopes.bulkPut(envelopes);
+          await database.notes.bulkPut(notes);
           await database.settings.update('app', {
             sampleDataLoaded: true,
             updatedAt: nowIso(),
@@ -443,11 +557,13 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
         records:
           bills.length +
           occurrences.length +
-          transactions.length +
+          savedTransactions.length +
           debts.length +
           goals.length +
-          savingsEntries.length +
-          1,
+          savedSavingsEntries.length +
+          envelopes.length +
+          notes.length +
+          2,
       };
     },
 
@@ -457,6 +573,7 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
         'rw',
         [
           database.settings,
+          database.accounts,
           database.incomeSources,
           database.bills,
           database.billOccurrences,
@@ -464,6 +581,8 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
           database.debts,
           database.savingsGoals,
           database.savingsEntries,
+          database.envelopes,
+          database.notes,
         ],
         async () => {
           const sampleIncome = await database.incomeSources.filter((row) => row.sample).toArray();
@@ -554,6 +673,52 @@ export function createSampleRepository(database: TideDatabase, clock: () => Date
           removed += sampleGoals.length;
           if (sampleGoals.length > 0) {
             await database.savingsGoals.bulkDelete(sampleGoals.map((row) => row.id));
+          }
+
+          const sampleEnvelopes = await database.envelopes.filter((row) => row.sample).toArray();
+          removed += sampleEnvelopes.length;
+          if (sampleEnvelopes.length > 0) {
+            await database.envelopes.bulkDelete(sampleEnvelopes.map((row) => row.id));
+          }
+
+          const sampleNotes = await database.notes.filter((row) => row.sample).toArray();
+          removed += sampleNotes.length;
+          if (sampleNotes.length > 0) {
+            await database.notes.bulkDelete(sampleNotes.map((row) => row.id));
+          }
+
+          const sampleAccounts = await database.accounts.filter((row) => row.sample).toArray();
+          const sampleAccountIds = new Set(sampleAccounts.map((row) => row.id));
+          if (sampleAccountIds.size > 0) {
+            const relink = { accountId: DEFAULT_ACCOUNT_ID, updatedAt: nowIso() };
+            await database.transactions
+              .filter(
+                (row) =>
+                  !row.sample && Boolean(row.accountId && sampleAccountIds.has(row.accountId)),
+              )
+              .modify(relink);
+            await database.bills
+              .filter(
+                (row) =>
+                  !row.sample && Boolean(row.accountId && sampleAccountIds.has(row.accountId)),
+              )
+              .modify(relink);
+            await database.incomeSources
+              .filter(
+                (row) =>
+                  !row.sample && Boolean(row.accountId && sampleAccountIds.has(row.accountId)),
+              )
+              .modify(relink);
+            await database.savingsEntries
+              .filter(
+                (row) =>
+                  !row.sample && Boolean(row.accountId && sampleAccountIds.has(row.accountId)),
+              )
+              .modify(relink);
+          }
+          removed += sampleAccounts.length;
+          if (sampleAccounts.length > 0) {
+            await database.accounts.bulkDelete(sampleAccounts.map((row) => row.id));
           }
 
           await database.settings.update('app', {

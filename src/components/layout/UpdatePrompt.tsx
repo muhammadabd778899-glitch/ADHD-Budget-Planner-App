@@ -21,7 +21,7 @@ export function UpdatePrompt() {
       }
     },
     onRegisterError(error) {
-      console.warn('Tide could not register its offline worker.', error);
+      console.warn('Harbor could not register its offline worker.', error);
     },
   });
 
@@ -34,7 +34,7 @@ export function UpdatePrompt() {
       </span>
       <div className="update-banner__body">
         <p className="update-banner__title">
-          {needRefresh ? 'A new version of Tide is ready' : 'Tide is ready offline'}
+          {needRefresh ? 'A new version of Harbor is ready' : 'Harbor is ready offline'}
         </p>
         <p className="update-banner__message">
           {needRefresh

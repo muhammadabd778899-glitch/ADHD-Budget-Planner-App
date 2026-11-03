@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Tide — calm local-first budget planner
+   Harbor — calm local-first budget planner
    Styles are split by concern and imported in cascade order.
    ========================================================================== */
 
@@ -9,3 +9,4 @@
 @import './components.css';
 @import './pages.css';
 @import './responsive.css';
+@import './premium.css';

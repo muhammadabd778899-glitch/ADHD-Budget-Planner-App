@@ -14,44 +14,25 @@ import {
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CategoryDot } from '@/components/finance/rows';
 import { CategoryFormDialog } from '@/components/finance/CategoryFormDialog';
+import { AccountFormDialog } from '@/components/finance/AccountFormDialog';
 import { useAppData } from '@/state/AppDataProvider';
 import { useToast } from '@/components/ui/ToastProvider';
-import type { Category, DateFormat, PlanMode, Theme } from '@/domain/types';
+import type { Account, Category, DateFormat, PlanMode, Theme } from '@/domain/types';
+import { DEFAULT_ACCOUNT_ID } from '@/domain/accounts';
 import {
   currencyFractionDigits,
   currencySymbol,
+  formatMoney,
   minorToInput,
   parseMoneyToMinor,
 } from '@/lib/money';
 import { formatBytes, downloadFile, makeFilename } from '@/lib/storage';
 import { billsToCsv, transactionsToCsv } from '@/lib/csv';
+import { CURRENCY_CODES } from '@/lib/currencies';
 import { describeError } from '@/db/errors';
 import { MAX_BACKUP_BYTES, type BackupSummary } from '@/domain/backup';
 import type { BackupFile } from '@/domain/schemas';
 import { APP_VERSION, BACKUP_MIME } from '@/lib/app';
-
-const CURRENCIES = [
-  'USD',
-  'EUR',
-  'GBP',
-  'CAD',
-  'AUD',
-  'NZD',
-  'JPY',
-  'INR',
-  'ZAR',
-  'BRL',
-  'MXN',
-  'SEK',
-  'NOK',
-  'DKK',
-  'CHF',
-  'SGD',
-  'HKD',
-  'PLN',
-  'CZK',
-  'TRY',
-];
 
 const LOCALES = [
   { value: 'en-US', label: 'English (United States)' },
@@ -137,6 +118,10 @@ export function SettingsPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [archiveCategoryTarget, setArchiveCategoryTarget] = useState<Category | null>(null);
 
+  const [accountFormOpen, setAccountFormOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [archiveAccountTarget, setArchiveAccountTarget] = useState<Account | null>(null);
+
   const [importIssues, setImportIssues] = useState<string[]>([]);
   const [previewSummary, setPreviewSummary] = useState<BackupSummary | null>(null);
   const [pendingBackup, setPendingBackup] = useState<BackupFile | null>(null);
@@ -148,8 +133,13 @@ export function SettingsPage() {
   const categories = snapshot?.categories ?? [];
   const activeCategories = categories.filter((category) => !category.archived);
   const archivedCategories = categories.filter((category) => category.archived);
+  const accounts = snapshot?.accounts ?? [];
+  const activeAccounts = accounts.filter((account) => !account.archived);
+  const archivedAccounts = accounts.filter((account) => account.archived);
   const currencySymbolValue = currencySymbol(currency, locale);
-  const currencyOptions = CURRENCIES.includes(currency) ? CURRENCIES : [currency, ...CURRENCIES];
+  const currencyOptions = (CURRENCY_CODES as readonly string[]).includes(currency)
+    ? [...CURRENCY_CODES]
+    : [currency, ...CURRENCY_CODES];
   const localeOptions = LOCALES.some((option) => option.value === locale)
     ? LOCALES
     : [{ value: locale, label: locale }, ...LOCALES];
@@ -160,13 +150,17 @@ export function SettingsPage() {
     const goals = snapshot?.savingsGoals.filter((row) => row.sample).length ?? 0;
     const debts = snapshot?.debts.filter((row) => row.sample).length ?? 0;
     const income = snapshot?.incomeSources.filter((row) => row.sample).length ?? 0;
+    const envelopes = snapshot?.envelopes.filter((row) => row.sample).length ?? 0;
+    const notes = snapshot?.notes.filter((row) => row.sample).length ?? 0;
     return {
       transactions,
       bills,
       goals,
       debts,
       income,
-      total: transactions + bills + goals + debts + income,
+      envelopes,
+      notes,
+      total: transactions + bills + goals + debts + income + envelopes + notes,
     };
   }, [snapshot]);
 
@@ -221,6 +215,16 @@ export function SettingsPage() {
     setCategoryFormOpen(true);
   }
 
+  function openNewAccount() {
+    setEditingAccount(null);
+    setAccountFormOpen(true);
+  }
+
+  function openEditAccount(account: Account) {
+    setEditingAccount(account);
+    setAccountFormOpen(true);
+  }
+
   function openEditCategory(category: Category) {
     setEditingCategory(category);
     setCategoryFormOpen(true);
@@ -253,7 +257,7 @@ export function SettingsPage() {
     setImportIssues([]);
     if (file.size > MAX_BACKUP_BYTES) {
       setImportIssues([
-        'This backup is larger than 15 MB. Tide does not import files of that size.',
+        'This backup is larger than 15 MB. Harbor does not import files of that size.',
       ]);
       return;
     }
@@ -268,7 +272,7 @@ export function SettingsPage() {
       setPreviewSummary(result.summary);
       setPreviewOpen(true);
     } catch {
-      setImportIssues(['Tide could not read that file. Choose a JSON backup created by Tide.']);
+      setImportIssues(['Harbor could not read that file. Choose a JSON backup created by Harbor.']);
     }
   }
 
@@ -352,7 +356,7 @@ export function SettingsPage() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Settings"
-        title="Make Tide yours"
+        title="Make Harbor yours"
         description="Preferences, categories, and the tools that keep your data in your hands."
         actions={
           <Button
@@ -374,7 +378,7 @@ export function SettingsPage() {
         <CardBody>
           <div className="form-grid form-grid--2">
             <Field
-              label="What should Tide call you?"
+              label="What should Harbor call you?"
               htmlFor="settings-name"
               hint="Optional. Only used in the greeting."
             >
@@ -490,7 +494,7 @@ export function SettingsPage() {
               label="Peace-of-mind cushion"
               htmlFor="settings-cushion"
               error={settingsErrors.cushion}
-              hint="Money Tide should leave untouched. Safe to spend stops here."
+              hint="Money Harbor should leave untouched. Safe to spend stops here."
             >
               <MoneyInput
                 id="settings-cushion"
@@ -506,6 +510,92 @@ export function SettingsPage() {
               Save preferences
             </Button>
           </FormActions>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Accounts"
+          description="Label where money lives, then choose an account on a record. Safe to spend can be viewed per account."
+          action={
+            <Button variant="secondary" size="sm" icon="plus" onClick={openNewAccount}>
+              Add account
+            </Button>
+          }
+        />
+        <CardBody>
+          <ul className="account-list">
+            {activeAccounts.map((account) => {
+              const isMain = account.id === DEFAULT_ACCOUNT_ID;
+              const openingMinor = isMain
+                ? (settings?.startingBalanceMinor ?? 0)
+                : account.openingBalanceMinor;
+              return (
+                <li className="account-row" key={account.id}>
+                  <div className="account-row__main">
+                    <div className="account-row__title">
+                      <strong>{account.name}</strong>
+                      <Badge tone="neutral">{account.kind}</Badge>
+                      {isMain ? <Badge tone="info">Main</Badge> : null}
+                      {account.sample ? <Badge tone="info">Sample</Badge> : null}
+                    </div>
+                    <span className="account-row__meta">
+                      Starts at {formatMoney(openingMinor, currency, locale)}
+                      {isMain ? ' · from Today’s starting point' : ''}
+                    </span>
+                  </div>
+                  <div className="inline-actions">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      icon="edit"
+                      aria-label={`Edit ${account.name}`}
+                      onClick={() => openEditAccount(account)}
+                    />
+                    {!isMain ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconOnly
+                        icon="trash"
+                        aria-label={`Archive ${account.name}`}
+                        onClick={() => setArchiveAccountTarget(account)}
+                      />
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {archivedAccounts.length > 0 ? (
+            <Disclosure summary={`Archived accounts (${archivedAccounts.length})`}>
+              <ul className="account-list">
+                {archivedAccounts.map((account) => (
+                  <li className="account-row" key={account.id}>
+                    <div className="account-row__main">
+                      <div className="account-row__title">
+                        <strong>{account.name}</strong>
+                        <Badge tone="neutral">Archived</Badge>
+                      </div>
+                      <span className="account-row__meta">
+                        {formatMoney(account.openingBalanceMinor, currency, locale)} opening balance
+                      </span>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void actions.restoreAccount(account.id)}
+                      disabled={busy}
+                    >
+                      Restore
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </Disclosure>
+          ) : null}
         </CardBody>
       </Card>
 
@@ -611,12 +701,12 @@ export function SettingsPage() {
               type="file"
               accept="application/json,.json"
               className="visually-hidden-input"
-              aria-label="Choose a Tide backup file"
+              aria-label="Choose a Harbor backup file"
               onChange={(event) => void readBackupFile(event)}
             />
           </div>
           <InlineNotice tone="warning" title="Restoring replaces your current data">
-            Tide validates the file, downloads a safety copy of what is here now, and asks for one
+            Harbor validates the file, downloads a safety copy of what is here now, and asks for one
             final confirmation. If anything fails, your existing records stay unchanged.
           </InlineNotice>
           {importIssues.length > 0 ? (
@@ -646,7 +736,7 @@ export function SettingsPage() {
             </Button>
           </div>
           <InlineNotice tone="warning" title="Keep CSV files private">
-            A CSV is plain text and may contain descriptions, amounts, and notes. Tide protects
+            A CSV is plain text and may contain descriptions, amounts, and notes. Harbor protects
             cells from spreadsheet formula injection, but it cannot encrypt the file for you.
           </InlineNotice>
         </CardBody>
@@ -665,7 +755,7 @@ export function SettingsPage() {
                 ? 'Some sample records are present.'
                 : 'Sample data is not loaded.'}{' '}
             {sampleCounts.total > 0
-              ? `${sampleCounts.total} sample records: ${sampleCounts.income} income, ${sampleCounts.bills} bills, ${sampleCounts.transactions} transactions, ${sampleCounts.debts} debts, ${sampleCounts.goals} goals.`
+              ? `${sampleCounts.total} sample records: ${sampleCounts.income} income, ${sampleCounts.bills} bills, ${sampleCounts.transactions} transactions, ${sampleCounts.debts} debts, ${sampleCounts.goals} goals, ${sampleCounts.envelopes} envelopes, ${sampleCounts.notes} notes.`
               : ''}
           </p>
           <div className="settings-actions">
@@ -730,7 +820,7 @@ export function SettingsPage() {
           </div>
           <p className="muted-copy">
             Protection is a request, not a guarantee. A browser may still remove site data under
-            pressure, so keep a recent JSON backup. Tide never claims its local data is encrypted.
+            pressure, so keep a recent JSON backup. Harbor never claims its local data is encrypted.
           </p>
         </CardBody>
       </Card>
@@ -740,7 +830,7 @@ export function SettingsPage() {
         <CardBody>
           <div className="about-grid">
             <div>
-              <span>Tide</span>
+              <span>Harbor</span>
               <strong>Version {APP_VERSION}</strong>
             </div>
             <div>
@@ -753,7 +843,7 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="muted-copy">
-            Tide is a planning tool, not a bank or a financial adviser. It does not connect to
+            Harbor is a planning tool, not a bank or a financial adviser. It does not connect to
             accounts, move money, or guarantee an outcome.
           </p>
         </CardBody>
@@ -766,6 +856,32 @@ export function SettingsPage() {
           setEditingCategory(null);
         }}
         category={editingCategory}
+      />
+
+      <AccountFormDialog
+        open={accountFormOpen}
+        onClose={() => {
+          setAccountFormOpen(false);
+          setEditingAccount(null);
+        }}
+        account={editingAccount}
+      />
+
+      <ConfirmDialog
+        open={archiveAccountTarget !== null}
+        onClose={() => setArchiveAccountTarget(null)}
+        onConfirm={() => {
+          if (archiveAccountTarget) {
+            void actions
+              .archiveAccount(archiveAccountTarget.id)
+              .then(() => setArchiveAccountTarget(null))
+              .catch(() => undefined);
+          }
+        }}
+        title={archiveAccountTarget ? `Archive ${archiveAccountTarget.name}?` : 'Archive account?'}
+        description="Records that use this account keep their history. Archived accounts disappear from pickers for new records. You can restore it later."
+        confirmLabel="Archive account"
+        busy={busy}
       />
 
       <ConfirmDialog
@@ -869,7 +985,7 @@ export function SettingsPage() {
             </div>
             <InlineNotice tone="warning">
               Continuing downloads a safety copy of your current data, then asks for one final
-              confirmation. Restoring will replace every record in Tide.
+              confirmation. Restoring will replace every record in Harbor.
             </InlineNotice>
           </div>
         ) : null}

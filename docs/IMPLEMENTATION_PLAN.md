@@ -13,7 +13,7 @@
 - [x] Responsive shell, sidebar, mobile nav, quick-add affordance.
 - [x] Routing, error boundary, 404, loading state.
 - [x] CI workflow.
-- [ ] Public HTTPS deployment verification (workflow included; owner must enable Pages).
+- [x] Public HTTPS deployment verification (GitHub Pages enabled and serving the app).
 
 ## M2 — Persistence and recovery
 
@@ -74,6 +74,15 @@
 - [x] Financial audit, regression checklist, fresh-buyer simulation.
 - [x] Customer docs and Etsy copy.
 - [ ] Publish listing (owner action).
+
+## M10 — Premium redesign and competitor-gap UX
+
+- [x] Navy/porcelain design system, icons, and brand refresh.
+- [x] Bill calendar, weekend labels, and debt payoff focus.
+- [x] Focus mode, Right Now, runway, quick-fill amounts, and keyboard shortcuts.
+- [x] Dialog centring bug fixed; desktop and mobile visual QA captured.
+- [x] Customer guide and listing copy rewritten.
+- [x] Deployment files preserved; Pages base build re-verified.
 
 ## Verification commands
 

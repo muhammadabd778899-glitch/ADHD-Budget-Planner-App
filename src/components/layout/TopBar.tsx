@@ -1,10 +1,11 @@
 import { useAppData } from '@/state/AppDataProvider';
 import { Button } from '@/components/ui/Button';
+import { BrandMark } from '@/components/ui/BrandMark';
 import { Icon } from '@/components/ui/Icon';
 import { formatDateOnly, todayISO } from '@/lib/dates';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
-export function TopBar() {
+export function TopBar({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   const { openQuickAdd, snapshot } = useAppData();
   const online = useOnlineStatus();
   const today = todayISO();
@@ -14,13 +15,8 @@ export function TopBar() {
   return (
     <div className="topbar">
       <div className="topbar__mobile-brand">
-        <span className="brand-mark brand-mark--small" aria-hidden="true">
-          <svg viewBox="0 0 32 32" role="presentation">
-            <path d="M5 18c4-6 8-6 11 0s7 6 11 0" />
-            <path d="M5 12c4-6 8-6 11 0s7 6 11 0" opacity="0.55" />
-          </svg>
-        </span>
-        <span className="topbar__wordmark">Tide</span>
+        <BrandMark className="brand-mark--small" />
+        <span className="topbar__wordmark">Harbor</span>
       </div>
       <div className="topbar__context">
         <p className="topbar__date">{formatDateOnly(today, locale, dateFormat)}</p>
@@ -36,6 +32,15 @@ export function TopBar() {
             Offline
           </span>
         ) : null}
+        <button
+          type="button"
+          className="topbar__shortcuts"
+          onClick={onShowShortcuts}
+          aria-label="Keyboard shortcuts"
+          title="Keyboard shortcuts (?)"
+        >
+          ?
+        </button>
         <Button
           icon="plus"
           size="sm"

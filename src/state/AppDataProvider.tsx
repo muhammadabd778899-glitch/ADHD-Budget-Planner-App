@@ -12,12 +12,15 @@ import { AppError, describeError } from '@/db/errors';
 import { createRepositories, initializeData } from '@/db/repositories';
 import { db } from '@/db/database';
 import type {
+  Account,
   AppSnapshot,
   Bill,
   Category,
   DateOnly,
   Debt,
+  Envelope,
   IncomeSource,
+  Note,
   SavingsEntry,
   SavingsGoal,
   Settings,
@@ -25,10 +28,13 @@ import type {
   TransactionType,
 } from '@/domain/types';
 import type { BackupFile } from '@/domain/schemas';
+import type { AccountInput } from '@/db/repositories/accounts';
 import type { BillInput } from '@/db/repositories/bills';
 import type { IncomeSourceInput } from '@/db/repositories/income';
 import type { DebtInput } from '@/db/repositories/debts';
 import type { SavingsGoalInput } from '@/db/repositories/savings';
+import type { EnvelopeInput } from '@/db/repositories/envelopes';
+import type { NoteInput } from '@/db/repositories/notes';
 import type { CategoryInput } from '@/db/repositories/categories';
 import type { TransactionInput } from '@/db/repositories/transactions';
 import type { SettingsPatch } from '@/db/repositories/settings';
@@ -59,6 +65,10 @@ interface AppDataContextValue {
   actions: {
     updateSettings: (patch: SettingsPatch) => Promise<Settings>;
     completeOnboarding: (patch: SettingsPatch) => Promise<Settings>;
+    createAccount: (input: AccountInput) => Promise<Account>;
+    updateAccount: (id: string, input: AccountInput) => Promise<Account>;
+    archiveAccount: (id: string) => Promise<void>;
+    restoreAccount: (id: string) => Promise<void>;
     createTransaction: (input: TransactionInput) => Promise<Transaction>;
     updateTransaction: (id: string, input: TransactionInput) => Promise<Transaction>;
     deleteTransaction: (id: string) => Promise<Transaction>;
@@ -94,8 +104,19 @@ interface AppDataContextValue {
       amountMinor: number,
       date: DateOnly,
       note?: string,
+      accountId?: string | null,
     ) => Promise<SavingsEntry>;
     deleteSavingsEntry: (id: string) => Promise<SavingsEntry>;
+    createEnvelope: (input: EnvelopeInput) => Promise<Envelope>;
+    updateEnvelope: (id: string, input: EnvelopeInput) => Promise<Envelope>;
+    archiveEnvelope: (id: string) => Promise<void>;
+    restoreEnvelope: (id: string) => Promise<void>;
+    createNote: (input: NoteInput) => Promise<Note>;
+    updateNote: (id: string, input: NoteInput) => Promise<Note>;
+    setNotePinned: (id: string, pinned: boolean) => Promise<void>;
+    archiveNote: (id: string) => Promise<void>;
+    restoreNote: (id: string) => Promise<void>;
+    deleteNote: (id: string) => Promise<Note>;
     createCategory: (input: CategoryInput) => Promise<Category>;
     updateCategory: (id: string, input: Partial<CategoryInput>) => Promise<Category>;
     archiveCategory: (id: string) => Promise<void>;
@@ -131,6 +152,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const loadSnapshot = useCallback(async (): Promise<AppSnapshot> => {
     const settings = await repositories.settings.get();
     const [
+      accounts,
       categories,
       incomeSources,
       bills,
@@ -139,8 +161,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       debts,
       savingsGoals,
       savingsEntries,
+      envelopes,
+      notes,
       storage,
     ] = await Promise.all([
+      repositories.accounts.list(),
       repositories.categories.list(true),
       repositories.income.list(),
       repositories.bills.list(),
@@ -149,10 +174,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       repositories.debts.list(),
       repositories.savings.listGoals(),
       repositories.savings.listEntries(),
+      repositories.envelopes.list(),
+      repositories.notes.list(),
       readStorageHealth(),
     ]);
     return {
       settings,
+      accounts,
       categories,
       incomeSources,
       bills,
@@ -161,6 +189,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       debts,
       savingsGoals,
       savingsEntries,
+      envelopes,
+      notes,
       storage,
     };
   }, []);
@@ -202,7 +232,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       } catch (caught) {
         if (cancelled) return;
         console.error(
-          'Tide could not load its local plan.',
+          'Harbor could not load its local plan.',
           (caught as Error).stack ?? String(caught),
         );
         setError(snapshotError(caught));
@@ -257,6 +287,26 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           successMessage: 'Your preferences are up to date.',
         }),
       completeOnboarding: (patch) => perform(() => repositories.settings.completeOnboarding(patch)),
+      createAccount: (input) =>
+        perform(() => repositories.accounts.create(input), {
+          successTitle: 'Account added',
+          successMessage: 'You can choose it on any money record.',
+        }),
+      updateAccount: (id, input) =>
+        perform(() => repositories.accounts.update(id, input), {
+          successTitle: 'Account updated',
+          successMessage: 'Your changes are saved.',
+        }),
+      archiveAccount: (id) =>
+        perform(() => repositories.accounts.archive(id), {
+          successTitle: 'Account archived',
+          successMessage: 'Its records were kept.',
+        }),
+      restoreAccount: (id) =>
+        perform(() => repositories.accounts.restore(id), {
+          successTitle: 'Account restored',
+          successMessage: 'It is available again.',
+        }),
       createTransaction: (input) =>
         perform(() => repositories.transactions.create(input), {
           successTitle: 'Added',
@@ -384,8 +434,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           successTitle: 'Goal restored',
           successMessage: 'This goal is active again.',
         }),
-      addSavingsEntry: (goalId, amountMinor, date, note) =>
-        perform(() => repositories.savings.addEntry(goalId, amountMinor, date, note), {
+      addSavingsEntry: (goalId, amountMinor, date, note, accountId) =>
+        perform(() => repositories.savings.addEntry(goalId, amountMinor, date, note, accountId), {
           successTitle: 'Savings updated',
           successMessage: 'This transfer changes cash on hand and goal progress.',
         }),
@@ -394,6 +444,48 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           successTitle: 'Savings entry removed',
           successMessage: 'Goal progress was recalculated.',
         }),
+      createEnvelope: (input) =>
+        perform(() => repositories.envelopes.create(input), {
+          successTitle: 'Envelope added',
+          successMessage: 'Spending in that category is now tracked against it.',
+        }),
+      updateEnvelope: (id, input) =>
+        perform(() => repositories.envelopes.update(id, input), {
+          successTitle: 'Envelope updated',
+          successMessage: 'Your changes are saved.',
+        }),
+      archiveEnvelope: (id) =>
+        perform(() => repositories.envelopes.archive(id), {
+          successTitle: 'Envelope archived',
+          successMessage: 'Spending records were left untouched.',
+        }),
+      restoreEnvelope: (id) =>
+        perform(() => repositories.envelopes.restore(id), {
+          successTitle: 'Envelope restored',
+          successMessage: 'It is tracking spending again.',
+        }),
+      createNote: (input) =>
+        perform(() => repositories.notes.create(input), {
+          successTitle: 'Note saved',
+          successMessage: 'It is stored on this device only.',
+        }),
+      updateNote: (id, input) =>
+        perform(() => repositories.notes.update(id, input), {
+          successTitle: 'Note updated',
+          successMessage: 'Your changes are saved.',
+        }),
+      setNotePinned: (id, pinned) => perform(() => repositories.notes.setPinned(id, pinned)),
+      archiveNote: (id) =>
+        perform(() => repositories.notes.archive(id), {
+          successTitle: 'Note archived',
+          successMessage: 'You can restore it later.',
+        }),
+      restoreNote: (id) =>
+        perform(() => repositories.notes.restore(id), {
+          successTitle: 'Note restored',
+          successMessage: 'It is back in your notes.',
+        }),
+      deleteNote: (id) => perform(() => repositories.notes.remove(id)),
       createCategory: (input) =>
         perform(() => repositories.categories.create(input), {
           successTitle: 'Category added',
@@ -444,7 +536,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           tone: granted ? 'success' : 'info',
           title: granted ? 'Storage protected' : 'Storage request',
           message: granted
-            ? 'Your browser agreed to keep Tide data during storage pressure.'
+            ? 'Your browser agreed to keep Harbor data during storage pressure.'
             : 'Your browser did not grant persistent storage. Keep regular backups.',
         });
         return granted;

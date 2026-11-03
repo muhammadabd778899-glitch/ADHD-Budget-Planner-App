@@ -83,8 +83,8 @@
   border-color: transparent;
   color: var(--safe-card-text);
   box-shadow:
-    0 1px 2px rgb(20 40 32 / 16%),
-    0 10px 20px -14px rgb(20 40 32 / 55%);
+    0 1px 2px rgb(9 22 42 / 16%),
+    0 10px 20px -14px rgb(21 56 124 / 55%);
 }
 
 .button--primary:hover:not(:disabled) {
@@ -143,11 +143,11 @@
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
-  animation: tide-spin 0.7s linear infinite;
+  animation: harbor-spin 0.7s linear infinite;
   opacity: 0.85;
 }
 
-@keyframes tide-spin {
+@keyframes harbor-spin {
   to {
     transform: rotate(360deg);
   }
@@ -1067,10 +1067,10 @@
     var(--surface-strong) 60%
   );
   background-size: 220% 100%;
-  animation: tide-shimmer 1.6s var(--ease-out) infinite;
+  animation: harbor-shimmer 1.6s var(--ease-out) infinite;
 }
 
-@keyframes tide-shimmer {
+@keyframes harbor-shimmer {
   from {
     background-position: 120% 0;
   }
@@ -1089,17 +1089,6 @@
   min-height: 100dvh;
   padding: var(--space-6);
   text-align: center;
-}
-
-.loading-screen__mark {
-  display: grid;
-  place-items: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: var(--radius-md);
-  background: linear-gradient(150deg, var(--safe-card-b), var(--safe-card-a));
-  color: var(--safe-card-text);
-  box-shadow: var(--shadow-md);
 }
 
 .loading-screen__title {
@@ -1212,10 +1201,10 @@
   background: var(--surface);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
-  animation: tide-dialog-in var(--duration-base) var(--ease-spring);
+  animation: harbor-dialog-in var(--duration-base) var(--ease-spring);
 }
 
-@keyframes tide-dialog-in {
+@keyframes harbor-dialog-in {
   from {
     opacity: 0;
     transform: translateY(10px) scale(0.985);
@@ -1344,10 +1333,10 @@
   background: var(--surface);
   box-shadow: var(--shadow-lg);
   pointer-events: auto;
-  animation: tide-toast-in var(--duration-base) var(--ease-spring);
+  animation: harbor-toast-in var(--duration-base) var(--ease-spring);
 }
 
-@keyframes tide-toast-in {
+@keyframes harbor-toast-in {
   from {
     opacity: 0;
     transform: translateY(12px);
@@ -1451,7 +1440,7 @@
   background: var(--surface);
   box-shadow: var(--shadow-lg);
   transform: translateX(-50%);
-  animation: tide-toast-in var(--duration-base) var(--ease-spring);
+  animation: harbor-toast-in var(--duration-base) var(--ease-spring);
 }
 
 .update-banner__icon {

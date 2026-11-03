@@ -66,6 +66,11 @@ export function daysBetween(from: DateOnly, to: DateOnly): number {
   return Math.round((parseDateOnly(to).getTime() - parseDateOnly(from).getTime()) / 86_400_000);
 }
 
+export function isWeekend(value: DateOnly): boolean {
+  const day = parseDateOnly(value).getUTCDay();
+  return day === 0 || day === 6;
+}
+
 export function compareDates(a: DateOnly, b: DateOnly): number {
   return a === b ? 0 : a < b ? -1 : 1;
 }

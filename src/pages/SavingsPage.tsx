@@ -7,7 +7,12 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { SavingsEntryDialog } from '@/components/finance/SavingsEntryDialog';
 import { SavingsGoalFormDialog } from '@/components/finance/SavingsGoalFormDialog';
 import { useAppData } from '@/state/AppDataProvider';
-import { savingsSummary, totalSavingsMinor } from '@/domain/savings';
+import {
+  savingsSummary,
+  totalSavingsMinor,
+  suggestedSetAsideMinor,
+  contributedThisMonthMinor,
+} from '@/domain/savings';
 import type { SavingsEntry, SavingsGoal } from '@/domain/types';
 import { formatDateOnly, formatMonth, monthKey, todayISO } from '@/lib/dates';
 import { formatMoney, formatMoneyShort } from '@/lib/money';
@@ -40,6 +45,7 @@ export function SavingsPage() {
     goal: SavingsGoal;
     currentMinor: number;
     mode: EntryMode;
+    amountMinor: number;
   } | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<SavingsGoal | null>(null);
   const [deleteEntryTarget, setDeleteEntryTarget] = useState<SavingsEntry | null>(null);
@@ -60,6 +66,10 @@ export function SavingsPage() {
   const monthlyWithdrawals = entries
     .filter((entry) => entry.amountMinor < 0 && monthKey(entry.date) === monthKey(today))
     .reduce((total, entry) => total + Math.abs(entry.amountMinor), 0);
+  const incomeThisMonthMinor = (snapshot?.transactions ?? []).reduce((total, transaction) => {
+    if (transaction.type !== 'income' || transaction.status !== 'cleared') return total;
+    return monthKey(transaction.date) === monthKey(today) ? total + transaction.amountMinor : total;
+  }, 0);
 
   function openNew() {
     setEditing(null);
@@ -71,9 +81,9 @@ export function SavingsPage() {
     setFormOpen(true);
   }
 
-  function openEntry(goal: SavingsGoal, mode: EntryMode) {
+  function openEntry(goal: SavingsGoal, mode: EntryMode, amountMinor = 0) {
     const summary = savingsSummary(goal, entries);
-    setEntryTarget({ goal, currentMinor: summary.currentMinor, mode });
+    setEntryTarget({ goal, currentMinor: summary.currentMinor, mode, amountMinor });
   }
 
   return (
@@ -140,6 +150,8 @@ export function SavingsPage() {
         <div className="savings-grid">
           {activeGoals.map((goal) => {
             const summary = savingsSummary(goal, entries);
+            const contributed = contributedThisMonthMinor(goal, entries, today);
+            const suggested = suggestedSetAsideMinor(goal, incomeThisMonthMinor, contributed);
             const goalEntries = entries
               .filter((entry) => entry.goalId === goal.id)
               .sort(
@@ -157,6 +169,7 @@ export function SavingsPage() {
                     <span className="title-with-badges">
                       <span className={`goal-dot goal-dot--${goal.color}`} aria-hidden="true" />
                       {goal.name}
+                      {goal.kind === 'sinking' ? <Badge tone="info">Sinking fund</Badge> : null}
                       {goal.sample ? <Badge tone="info">Sample</Badge> : null}
                     </span>
                   }
@@ -216,12 +229,47 @@ export function SavingsPage() {
                       <span>Target</span>
                       <strong>{formatMoneyShort(goal.targetMinor, currency, locale)}</strong>
                     </div>
+                    {goal.kind === 'sinking' &&
+                    (goal.monthlyTargetMinor > 0 || goal.autoSavePercent > 0) ? (
+                      <div>
+                        <span>Monthly</span>
+                        <strong>
+                          {goal.monthlyTargetMinor > 0
+                            ? formatMoneyShort(goal.monthlyTargetMinor, currency, locale)
+                            : `${goal.autoSavePercent}% of income`}
+                        </strong>
+                      </div>
+                    ) : null}
                   </div>
                   <ProgressBar
                     label={`${goal.name} progress`}
                     value={summary.progress}
                     tone={goalTone(goal.color)}
                   />
+                  {goal.kind === 'sinking' &&
+                  (goal.monthlyTargetMinor > 0 || goal.autoSavePercent > 0) ? (
+                    <div className="sinking-suggestion">
+                      <div>
+                        <span>Suggested set-aside this month</span>
+                        <strong>{formatMoney(Math.max(0, suggested), currency, locale)}</strong>
+                        <p className="disclosure-note">
+                          {contributed > 0
+                            ? `${formatMoney(contributed, currency, locale)} added this month.`
+                            : 'Nothing added yet this month.'}{' '}
+                          Harbor only suggests; you decide when money moves.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        icon="plus"
+                        disabled={suggested <= 0}
+                        onClick={() => openEntry(goal, 'contribute', suggested)}
+                      >
+                        Set aside
+                      </Button>
+                    </div>
+                  ) : null}
                   {goal.notes ? <p className="source-card__note">{goal.notes}</p> : null}
 
                   <Disclosure summary={`Money movement (${goalEntries.length})`}>
@@ -352,6 +400,7 @@ export function SavingsPage() {
         goal={entryTarget?.goal ?? null}
         currentMinor={entryTarget?.currentMinor ?? 0}
         initialMode={entryTarget?.mode ?? 'contribute'}
+        initialAmountMinor={entryTarget?.amountMinor ?? 0}
       />
 
       <ConfirmDialog

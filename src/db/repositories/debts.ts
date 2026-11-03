@@ -1,6 +1,6 @@
 import type { Debt, DebtKind, Transaction } from '@/domain/types';
 import { debtSchema } from '@/domain/schemas';
-import type { TideDatabase } from '@/db/database';
+import type { HarborDatabase } from '@/db/database';
 import { AppError } from '@/db/errors';
 import { createId, nowIso } from '@/lib/ids';
 import { isValidDateOnly, todayISO } from '@/lib/dates';
@@ -41,7 +41,7 @@ function validate(input: DebtInput): string[] {
   return errors;
 }
 
-export function createDebtsRepository(database: TideDatabase) {
+export function createDebtsRepository(database: HarborDatabase) {
   return {
     async list(): Promise<Debt[]> {
       const rows = await database.debts.toArray();
@@ -143,6 +143,7 @@ export function createDebtsRepository(database: TideDatabase) {
           billOccurrenceId: null,
           debtId: debt.id,
           incomeSourceId: null,
+          accountId: null,
           sample: debt.sample,
           createdAt: now,
           updatedAt: now,

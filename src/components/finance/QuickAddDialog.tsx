@@ -18,6 +18,7 @@ import {
   minorToInput,
   parseMoneyToMinor,
   currencyFractionDigits,
+  formatMoneyShort,
 } from '@/lib/money';
 import { todayISO } from '@/lib/dates';
 import type { TransactionType } from '@/domain/types';
@@ -30,6 +31,7 @@ export function QuickAddDialog() {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [accountId, setAccountId] = useState('');
   const [date, setDate] = useState(todayISO());
   const [notes, setNotes] = useState('');
   const [pending, setPending] = useState(false);
@@ -44,6 +46,9 @@ export function QuickAddDialog() {
   const currency = settings?.currency ?? 'USD';
   const locale = settings?.locale ?? 'en-US';
   const symbol = currencySymbol(currency, locale);
+  const quickAmounts = [5, 10, 20, 50].map(
+    (units) => units * 10 ** currencyFractionDigits(currency),
+  );
   const categories = useMemo(
     () =>
       (snapshot?.categories ?? []).filter(
@@ -61,6 +66,7 @@ export function QuickAddDialog() {
     );
     setDescription(quickAdd.description ?? '');
     setCategoryId(quickAdd.categoryId ?? '');
+    setAccountId(snapshot?.accounts.find((account) => !account.archived)?.id ?? '');
     setDate(quickAdd.date ?? todayISO());
     setNotes('');
     setPending(false);
@@ -69,7 +75,7 @@ export function QuickAddDialog() {
     setErrors({});
     setFormErrors([]);
     setSubmitting(false);
-  }, [quickAdd, currency]);
+  }, [quickAdd, currency, snapshot?.accounts]);
 
   useEffect(() => {
     if (!open) return;
@@ -123,6 +129,7 @@ export function QuickAddDialog() {
         status: type === 'income' ? 'cleared' : pending ? 'pending' : 'cleared',
         source: incomeSourceId ? 'income' : 'manual',
         incomeSourceId: type === 'income' ? incomeSourceId : null,
+        accountId: accountId || null,
         sample,
       });
       closeQuickAdd();
@@ -207,6 +214,22 @@ export function QuickAddDialog() {
           </Field>
         </div>
 
+        {type === 'expense' ? (
+          <div className="quick-amounts" role="group" aria-label="Common expense values">
+            <span className="quick-amounts__label">Quick fill</span>
+            {quickAmounts.map((minor) => (
+              <button
+                key={minor}
+                type="button"
+                className="quick-amounts__chip"
+                onClick={() => setAmount(minorToInput(minor, currency))}
+              >
+                {formatMoneyShort(minor, currency, locale)}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <Field
           label="Description"
           htmlFor={`${baseId}-description`}
@@ -244,6 +267,24 @@ export function QuickAddDialog() {
             ))}
           </Select>
         </Field>
+
+        {(snapshot?.accounts.length ?? 0) > 1 ? (
+          <Field label="Account" htmlFor={`${baseId}-account`} hint="Where the money moved.">
+            <Select
+              id={`${baseId}-account`}
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
+            >
+              {(snapshot?.accounts ?? [])
+                .filter((account) => !account.archived || account.id === accountId)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+            </Select>
+          </Field>
+        ) : null}
 
         {type === 'expense' ? (
           <Checkbox

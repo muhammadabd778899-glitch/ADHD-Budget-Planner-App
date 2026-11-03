@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { Icon } from '@/components/ui/Icon';
+import { BrandMark } from '@/components/ui/BrandMark';
 import { NAV_GROUPS } from '@/components/layout/nav';
 import { useAppData } from '@/state/AppDataProvider';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -21,15 +22,10 @@ export function Sidebar() {
   return (
     <aside className="sidebar" aria-label="Primary">
       <div className="sidebar__brand">
-        <span className="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32" role="presentation">
-            <path d="M5 18c4-6 8-6 11 0s7 6 11 0" />
-            <path d="M5 12c4-6 8-6 11 0s7 6 11 0" opacity="0.55" />
-          </svg>
-        </span>
+        <BrandMark />
         <div>
-          <p className="sidebar__wordmark">Tide</p>
-          <p className="sidebar__tagline">calm money planning</p>
+          <p className="sidebar__wordmark">Harbor</p>
+          <p className="sidebar__tagline">a safe harbor for money</p>
         </div>
       </div>
 

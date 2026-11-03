@@ -1,22 +1,22 @@
 import Dexie from 'dexie';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { TideDatabase } from '@/db/database';
+import { HarborDatabase } from '@/db/database';
 import { createRepositories, initializeData, type Repositories } from '@/db/repositories';
 import { occurrenceId } from '@/db/repositories/bills';
 import { addDays, todayISO } from '@/lib/dates';
 
 const TODAY = todayISO();
 let counter = 0;
-let database: TideDatabase;
+let database: HarborDatabase;
 let repos: Repositories;
 
 function uniqueName(): string {
   counter += 1;
-  return `tide-test-${Date.now()}-${counter}-${Math.random().toString(36).slice(2, 7)}`;
+  return `harbor-test-${Date.now()}-${counter}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 beforeEach(async () => {
-  database = new TideDatabase(uniqueName());
+  database = new HarborDatabase(uniqueName());
   repos = createRepositories(database);
   await initializeData(repos, TODAY);
 });
@@ -29,7 +29,7 @@ describe('settings and initial data', () => {
   it('creates defaults exactly once and keeps onboarding incomplete', async () => {
     const settings = await repos.settings.get();
     expect(settings.onboardingComplete).toBe(false);
-    expect(settings.schemaVersion).toBe(2);
+    expect(settings.schemaVersion).toBe(3);
 
     const first = await repos.categories.list();
     await repos.settings.ensure();
@@ -53,6 +53,137 @@ describe('settings and initial data', () => {
     await expect(repos.settings.update({ currency: 'not-a-currency' })).rejects.toMatchObject({
       code: 'VALIDATION',
     });
+  });
+});
+
+describe('accounts', () => {
+  it('seeds a main account and keeps its balance in settings', async () => {
+    const accounts = await repos.accounts.list();
+    expect(accounts[0]).toMatchObject({ id: 'acct-main', name: 'Main account' });
+
+    const updated = await repos.accounts.update('acct-main', {
+      name: 'Everyday checking',
+      kind: 'checking',
+      openingBalanceMinor: 42_000,
+    });
+
+    expect(updated.openingBalanceMinor).toBe(42_000);
+    expect((await repos.settings.get()).startingBalanceMinor).toBe(42_000);
+    await expect(repos.accounts.archive('acct-main')).rejects.toMatchObject({ code: 'CONFLICT' });
+  });
+
+  it('creates, archives, and restores a secondary account', async () => {
+    const wallet = await repos.accounts.create({
+      name: 'Wallet',
+      kind: 'cash',
+      openingBalanceMinor: 5_000,
+    });
+
+    await repos.accounts.archive(wallet.id);
+    expect((await repos.accounts.list()).find((row) => row.id === wallet.id)?.archived).toBe(true);
+
+    await repos.accounts.restore(wallet.id);
+    expect((await repos.accounts.list()).find((row) => row.id === wallet.id)?.archived).toBe(false);
+    expect((await repos.settings.get()).startingBalanceMinor).toBe(0);
+  });
+});
+
+describe('semimonthly bills with accounts', () => {
+  it('generates the 1st and a custom second day and pays from its account', async () => {
+    const wallet = await repos.accounts.create({
+      name: 'Wallet',
+      kind: 'cash',
+      openingBalanceMinor: 0,
+    });
+    const bill = await repos.bills.create({
+      name: 'Phone',
+      amountMinor: 4_000,
+      frequency: 'semimonthly',
+      anchorDate: TODAY,
+      endDate: null,
+      secondDay: 20,
+      categoryId: 'cat-bills',
+      accountId: wallet.id,
+      autoPay: false,
+      notes: '',
+    });
+    expect(bill).toMatchObject({ secondDay: 20, accountId: wallet.id });
+
+    await repos.bills.ensureOccurrences(TODAY, addDays(TODAY, 60));
+    const occurrences = await repos.bills.listOccurrences(TODAY, addDays(TODAY, 60));
+    expect(occurrences.length).toBeGreaterThanOrEqual(3);
+    expect(
+      occurrences.every((occurrence) => {
+        const day = Number(occurrence.dueDate.slice(8, 10));
+        return day === 1 || day === 20;
+      }),
+    ).toBe(true);
+
+    const paid = await repos.bills.markPaid(occurrences[0]!.id, TODAY);
+    expect(paid.transaction.accountId).toBe(wallet.id);
+  });
+});
+
+describe('envelopes and notes', () => {
+  it('validates envelope categories and archives without deleting history', async () => {
+    const envelope = await repos.envelopes.create({
+      name: 'Groceries',
+      categoryId: 'cat-groceries',
+      monthlyAmountMinor: 30_000,
+      rollover: true,
+    });
+    expect(envelope).toMatchObject({ monthlyAmountMinor: 30_000, rollover: true });
+
+    await expect(
+      repos.envelopes.create({
+        name: 'Duplicate groceries',
+        categoryId: 'cat-groceries',
+        monthlyAmountMinor: 10_000,
+        rollover: false,
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION' });
+
+    await repos.envelopes.archive(envelope.id);
+    expect((await repos.envelopes.list()).find((row) => row.id === envelope.id)?.archived).toBe(
+      true,
+    );
+    await repos.envelopes.restore(envelope.id);
+    expect((await repos.envelopes.list()).find((row) => row.id === envelope.id)?.archived).toBe(
+      false,
+    );
+  });
+
+  it('creates, pins, archives, and removes notes', async () => {
+    const dump = await repos.notes.create({
+      kind: 'brain-dump',
+      month: null,
+      text: 'Call the power company.',
+    });
+    const monthNote = await repos.notes.create({
+      kind: 'month',
+      month: '2026-03',
+      text: 'March felt steady.',
+    });
+
+    await expect(
+      repos.notes.create({ kind: 'month', month: null, text: 'No month' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION' });
+    await expect(
+      repos.notes.create({ kind: 'brain-dump', month: null, text: '   ' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION' });
+
+    await repos.notes.setPinned(dump.id, true);
+    const list = await repos.notes.list();
+    expect(list[0]).toMatchObject({ id: dump.id, pinned: true });
+
+    await repos.notes.archive(monthNote.id);
+    expect((await repos.notes.list()).find((row) => row.id === monthNote.id)?.archived).toBe(true);
+    await repos.notes.restore(monthNote.id);
+    expect((await repos.notes.list()).find((row) => row.id === monthNote.id)?.archived).toBe(false);
+
+    const removed = await repos.notes.remove(dump.id);
+    expect(removed.text).toBe('Call the power company.');
+    expect(await database.notes.get(dump.id)).toBeUndefined();
   });
 });
 
@@ -203,6 +334,10 @@ describe('sample data isolation', () => {
     expect(await database.debts.count()).toBe(0);
     expect(await database.savingsGoals.count()).toBe(0);
     expect(await database.savingsEntries.count()).toBe(0);
+    expect(await database.envelopes.count()).toBe(0);
+    expect(await database.notes.count()).toBe(0);
+    expect(await database.accounts.count()).toBe(1);
+    expect(await database.accounts.get('acct-main')).toMatchObject({ sample: false });
     expect(await database.categories.count()).toBe(realCategoryCount);
   });
 });
@@ -218,6 +353,17 @@ describe('backup export and restore', () => {
       categoryId: 'cat-groceries',
       status: 'cleared',
     });
+    const envelope = await repos.envelopes.create({
+      name: 'Groceries',
+      categoryId: 'cat-groceries',
+      monthlyAmountMinor: 30_000,
+      rollover: true,
+    });
+    const note = await repos.notes.create({
+      kind: 'brain-dump',
+      month: null,
+      text: 'Keep the coffee budget.',
+    });
 
     const backup = await repos.backup.exportFile();
     const text = JSON.stringify(backup);
@@ -225,6 +371,9 @@ describe('backup export and restore', () => {
     expect(validation.ok).toBe(true);
     if (!validation.ok) return;
     expect(validation.summary.counts.transactions).toBe(1);
+    expect(validation.summary.counts.accounts).toBeGreaterThanOrEqual(1);
+    expect(validation.summary.counts.envelopes).toBe(1);
+    expect(validation.summary.counts.notes).toBe(1);
 
     // Mutate the database after the backup so restore has something to undo.
     await repos.transactions.create({
@@ -245,6 +394,10 @@ describe('backup export and restore', () => {
     });
     expect(await database.transactions.count()).toBe(1);
     expect((await repos.settings.get()).displayName).toBe('Ari');
+    expect(await database.envelopes.get(envelope.id)).toMatchObject({ name: 'Groceries' });
+    expect(await database.notes.get(note.id)).toMatchObject({
+      text: 'Keep the coffee budget.',
+    });
   });
 
   it('rejects invalid and inconsistent backups without changing data', async () => {
@@ -323,14 +476,15 @@ describe('schema migration', () => {
     });
     legacy.close();
 
-    const upgraded = new TideDatabase(name);
+    const upgraded = new HarborDatabase(name);
     try {
       const settings = await upgraded.settings.get('app');
       const category = await upgraded.categories.get('cat-legacy');
-      expect(settings?.schemaVersion).toBe(2);
+      expect(settings?.schemaVersion).toBe(3);
       expect(typeof settings?.updatedAt).toBe('string');
       expect(typeof category?.createdAt).toBe('string');
       expect(typeof category?.updatedAt).toBe('string');
+      expect((await upgraded.accounts.get('acct-main'))?.name).toBe('Main account');
     } finally {
       await upgraded.delete();
     }

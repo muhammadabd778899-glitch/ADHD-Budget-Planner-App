@@ -16,7 +16,7 @@ safeToSpend  = cashOnHand − reservedBills − cushion
 - Pending expenses are excluded from cash and surfaced as a labelled caution.
 - Savings contributions reduce cash; withdrawals restore cash; they are not spending.
 - Debt payments are expense transactions linked to the debt and therefore reduce cash.
-- Bills paid through Tide become one linked expense transaction; marking unpaid removes it after
+- Bills paid through Harbor become one linked expense transaction; marking unpaid removes it after
   confirmation.
 - Expected income is reported separately and never enters safe to spend.
 
@@ -39,9 +39,13 @@ safeToSpend  = cashOnHand − reservedBills − cushion
 - [x] Version `1.0.0` recorded in `package.json`.
 - [x] Backup format version `1`, database schema version `2`.
 - [x] Production build contains PWA manifest, icons, service worker, and app shell.
+- [x] GitHub Pages deployment verified.
+- [x] Premium navy redesign and ease-of-use pass complete (M10).
+- [x] Customer guide and Etsy listing copy expanded with supported-claims guardrails.
 
 ## Known limitations at release
 
 - No bank sync, AI advice, cloud sync, subscriptions, or investment features.
 - No encryption; data is local to the browser only.
-- Public deployment requires GitHub Pages enablement by the repository owner.
+- No automatic multi-device sync. Use JSON backup/restore to move data.
+- The public listing and final delivery package remain owner actions.

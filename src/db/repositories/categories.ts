@@ -1,6 +1,6 @@
 import type { Category, CategoryKind } from '@/domain/types';
 import { categorySchema } from '@/domain/schemas';
-import type { TideDatabase } from '@/db/database';
+import type { HarborDatabase } from '@/db/database';
 import { AppError } from '@/db/errors';
 import { DEFAULT_CATEGORIES } from '@/db/defaults';
 import { createId, nowIso } from '@/lib/ids';
@@ -16,7 +16,7 @@ function normalizeName(name: string): string {
   return name.trim().toLocaleLowerCase();
 }
 
-export function createCategoriesRepository(database: TideDatabase) {
+export function createCategoriesRepository(database: HarborDatabase) {
   async function assertUnique(name: string, kind: CategoryKind, ignoreId?: string) {
     const categories = await database.categories.toArray();
     const clash = categories.find(

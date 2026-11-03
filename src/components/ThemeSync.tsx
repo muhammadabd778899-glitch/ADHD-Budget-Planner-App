@@ -18,7 +18,7 @@ export function ThemeSync() {
       root.dataset.theme = resolved;
       root.style.colorScheme = resolved;
       const meta = document.querySelector('meta[name="theme-color"]');
-      meta?.setAttribute('content', resolved === 'dark' ? '#101b18' : '#f7f2e8');
+      meta?.setAttribute('content', resolved === 'dark' ? '#040b16' : '#eef3fb');
     };
 
     apply();

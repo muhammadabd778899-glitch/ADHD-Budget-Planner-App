@@ -9,7 +9,7 @@ import type {
 import { Badge, type StatusTone } from '@/components/ui/Feedback';
 import { Button } from '@/components/ui/Button';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { formatDateOnly, dueTone, relativeDayLabel, daysBetween } from '@/lib/dates';
+import { formatDateOnly, dueTone, relativeDayLabel, daysBetween, isWeekend } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 
 export function CategoryDot({ category }: { category?: Category }) {
@@ -173,6 +173,12 @@ export function BillOccurrenceRow({
           <span>{category?.name ?? 'Uncategorised'}</span>
           <span aria-hidden="true">·</span>
           <span>Due {formatDateOnly(occurrence.dueDate, locale, dateFormat)}</span>
+          {occurrence.status === 'unpaid' && isWeekend(occurrence.dueDate) ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="bill-row__weekend">Weekend due date</span>
+            </>
+          ) : null}
           {bill?.autoPay ? (
             <>
               <span aria-hidden="true">·</span>

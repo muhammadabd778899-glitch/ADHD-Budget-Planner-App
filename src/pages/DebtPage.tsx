@@ -3,6 +3,7 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/Dialog';
 import { Badge, Disclosure, EmptyState, InlineNotice, ProgressBar } from '@/components/ui/Feedback';
+import { Icon } from '@/components/ui/Icon';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { TransactionRow } from '@/components/finance/rows';
 import { DebtFormDialog } from '@/components/finance/DebtFormDialog';
@@ -45,7 +46,7 @@ function payoffCopy(
     if (estimate.reason === 'missing-payment') {
       return {
         headline: 'Add a minimum payment for an estimate',
-        detail: 'Without a monthly payment amount, Tide cannot estimate a payoff time.',
+        detail: 'Without a monthly payment amount, Harbor cannot estimate a payoff time.',
         tone: 'neutral' as const,
       };
     }
@@ -100,6 +101,24 @@ export function DebtPage() {
     [activeDebts, transactions],
   );
 
+  const payoffFocus = useMemo(() => {
+    const contenders = summaries.filter((summary) => summary.currentBalanceMinor > 0);
+    if (contenders.length < 2) return null;
+    const rated = contenders.filter((summary) => (summary.debt.interestRateBps ?? 0) > 0);
+    if (rated.length > 0) {
+      const top = rated
+        .slice()
+        .sort(
+          (a, b) =>
+            (b.debt.interestRateBps ?? 0) - (a.debt.interestRateBps ?? 0) ||
+            a.currentBalanceMinor - b.currentBalanceMinor,
+        )[0];
+      return { summary: top, order: 'highest-rate' as const };
+    }
+    const top = contenders.slice().sort((a, b) => a.currentBalanceMinor - b.currentBalanceMinor)[0];
+    return { summary: top, order: 'smallest-balance' as const };
+  }, [summaries]);
+
   const totalDebt = totalDebtMinor(activeDebts, transactions);
   const totalMinimum = activeDebts.reduce(
     (total, debt) => total + (debt.minimumPaymentMinor ?? 0),
@@ -141,7 +160,7 @@ export function DebtPage() {
       {activeDebts.length === 0 ? (
         <InlineNotice tone="info" title="Debt tracking is optional">
           Add an account if seeing the payoff progress would help. If it would only add noise, skip
-          it. Tide works without this page.
+          it. Harbor works without this page.
         </InlineNotice>
       ) : null}
 
@@ -173,9 +192,46 @@ export function DebtPage() {
               locale,
             )}
           </p>
-          <p className="metric__note">Total paid through Tide since each account was added.</p>
+          <p className="metric__note">Total paid through Harbor since each account was added.</p>
         </Card>
       </div>
+
+      {payoffFocus ? (
+        <section className="payoff-priority" aria-labelledby="payoff-priority-title">
+          <span className="payoff-priority__icon" aria-hidden="true">
+            <Icon name="target" size={18} />
+          </span>
+          <div className="payoff-priority__text">
+            <p className="payoff-priority__title" id="payoff-priority-title">
+              Suggested focus: {payoffFocus.summary.debt.name}
+            </p>
+            <p className="payoff-priority__body">
+              {payoffFocus.order === 'highest-rate'
+                ? `${formatBps(payoffFocus.summary.debt.interestRateBps)} interest on ${formatMoney(
+                    payoffFocus.summary.currentBalanceMinor,
+                    currency,
+                    locale,
+                  )}. Extra money here first follows the highest-interest order; ties go to the smaller balance.`
+                : `No interest rates are entered, so this follows the smallest-balance order: ${formatMoney(
+                    payoffFocus.summary.currentBalanceMinor,
+                    currency,
+                    locale,
+                  )}. Quick wins can make progress easier to keep up.`}
+            </p>
+            <p className="payoff-priority__note">
+              A common order to keep decisions simple — not financial advice.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            icon="plus"
+            onClick={() => setPaymentTarget(payoffFocus.summary)}
+          >
+            Payment
+          </Button>
+        </section>
+      ) : null}
 
       {summaries.length === 0 ? (
         <Card>
@@ -341,7 +397,7 @@ export function DebtPage() {
               the debt balance to match the real statement.
             </li>
             <li>
-              Overpayments show as a credit balance. Tide does not hide the number or force it to
+              Overpayments show as a credit balance. Harbor does not hide the number or force it to
               zero.
             </li>
             <li>

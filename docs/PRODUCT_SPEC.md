@@ -1,6 +1,6 @@
-# Tide — Product Specification
+# Harbor — Product Specification
 
-**Product:** Tide (working title) — a calm, local-first budget planner designed for ADHD brains.
+**Product:** Harbor — a calm, local-first budget planner designed for ADHD brains.
 **Version:** 1.0
 **Status:** Approved baseline for implementation (decisions recorded in `DECISIONS.md`).
 
@@ -8,7 +8,7 @@
 
 ## 1. Product promise
 
-Tide helps a person answer five questions in under a minute:
+Harbor helps a person answer five questions in under a minute:
 
 1. How much money do I have available right now?
 2. What bills and commitments still need to be covered?
@@ -16,7 +16,7 @@ Tide helps a person answer five questions in under a minute:
 4. What should I do next to stay on track?
 5. Am I making progress on debt and savings?
 
-Tide is not a bank, an accounting package, a financial adviser, or a spreadsheet. It is a calm planning surface that makes the next useful action obvious.
+Harbor is not a bank, an accounting package, a financial adviser, or a spreadsheet. It is a calm planning surface that makes the next useful action obvious.
 
 ## 2. Primary user
 
@@ -48,13 +48,15 @@ Secondary user: anyone who wants a simple paycheck-to-paycheck planner without b
 | Area          | Behaviour                                                                                                                                |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Dashboard     | Available now, safe to spend, reserved bills, next payday, upcoming bills, recent activity, progress summaries, calculation explanations |
+| Accounts      | Named accounts (checking, savings, cash, credit), optional per-record account, safe to spend per account or across all accounts          |
 | Income        | Recurring and one-time income sources, projected paydays, received income records, pause/edit/archive                                    |
-| Bills         | Recurring and one-time bills, due occurrences, paid/skipped/unpaid, overdue detection, payment history through transactions              |
-| Spending      | Fast expense entry, editing, deletion with undo, search, filters, categories                                                             |
+| Bills         | Recurring and one-time bills, semimonthly bills with a custom second due day, due occurrences, paid/skipped/unpaid, overdue detection    |
+| Spending      | Fast expense entry, editing, deletion with undo, search, filters, categories, monthly envelope limits with optional rollover             |
 | Planning      | Paycheck-period and calendar-month planning windows                                                                                      |
-| Safe to spend | Documented conservative formula with a user-controlled cushion                                                                           |
+| Safe to spend | Documented conservative formula with a user-controlled cushion and optional account scoping                                              |
 | Debt          | Debt accounts, current balance, payment recording, payment history, optional estimate with explicit assumptions                          |
-| Savings       | Goals, starting amount, contributions, withdrawals, progress, remaining amount                                                           |
+| Savings       | Goals and sinking funds, starting amount, contributions, withdrawals, progress, suggested monthly set-aside without automatic transfers  |
+| Notes         | Brain-dump notes and pinned month notes, edit, archive, and restore                                                                      |
 | Reports       | Month income/expense summary, category breakdown, plan-window summary                                                                    |
 | Data          | IndexedDB persistence, versioned JSON backup/restore, CSV export, sample data that is labelled and removable                             |
 | Offline       | Installable PWA, app-shell caching, offline CRUD, user-consented update prompt                                                           |
@@ -68,7 +70,7 @@ Secondary user: anyone who wants a simple paycheck-to-paycheck planner without b
 - Investment, credit-score, tax, or lending features
 - AI advice or automated financial recommendations
 - Guaranteed payoff dates or financial outcomes
-- Encryption claims (data is stored locally but not encrypted by Tide)
+- Encryption claims (data is stored locally but not encrypted by Harbor)
 - Automatic backups (the user initiates backups)
 
 ## 5. Information architecture
@@ -85,9 +87,10 @@ Primary routes:
 - `/spending` Spending
 - `/debt` Debt
 - `/savings` Savings
+- `/notes` Brain dump and month notes
 - `/reports` Reports
 - `/settings` Settings
-- `/help` How Tide works
+- `/help` How Harbor works
 - `/onboarding` first-run flow
 - `*` not found
 
@@ -102,7 +105,7 @@ All money is stored as integer **minor units** (cents for USD). All dates are da
 - **Cash on hand**: `startingBalance + received income − actual spending − savings contributions + savings withdrawals` using all records dated on or before today.
   - A savings contribution is a transfer out of spendable cash.
   - A debt payment is an expense transaction and therefore reduces cash on hand.
-  - Bills paid through Tide create exactly one expense transaction; marking a bill unpaid removes that transaction after confirmation.
+  - Bills paid through Harbor create exactly one expense transaction; marking a bill unpaid removes that transaction after confirmation.
 - **Reserved bills**: the sum of unpaid, non-skipped bill occurrences with `dueDate <= periodEnd`. Overdue unpaid occurrences are included. Paid and skipped occurrences are excluded.
 - **Cushion**: a user-set amount (`cushionMinor`) representing money they want to leave untouched. It is the reserved savings component of the safe-to-spend formula.
 - **Planning window**:
@@ -126,7 +129,9 @@ safeToSpend   = cashOnHand − reservedBills − cushionMinor
 
 `cashOnHand` may be negative. `safeToSpend` may be negative; it is displayed as “Over plan by …” with calm styling, never as an error.
 
-Expected income is **not** included in safe to spend. This is deliberately conservative: Tide never lets a future payday make today’s number look safer than it is. Expected income is shown separately as “Coming in”.
+**Accounts.** “All accounts” uses the formula above across every record. A single account uses only its own records (records with a null `accountId` belong to the main account). The main account uses `settings.startingBalanceMinor` and `settings.cushionMinor`; a secondary account uses its own opening balance and a cushion of zero, because the cushion is a plan-wide reserve.
+
+Expected income is **not** included in safe to spend. This is deliberately conservative: Harbor never lets a future payday make today’s number look safer than it is. Expected income is shown separately as “Coming in”.
 
 ### 6.3 Planning period and paydays
 
@@ -141,6 +146,7 @@ Expected income is **not** included in safe to spend. This is deliberately conse
 - Occurrences are materialised lazily for a rolling horizon of 18 months back through 24 months forward.
 - A recurring bill’s occurrence identity is deterministic: `<billId>__<dueDate>`.
 - Monthly dates clamp to the last day of shorter months (for example, the 31st becomes the 30th in April).
+- Semimonthly bills occur on the 1st and on a second day the user chooses (2–31, default 15). The second day also clamps to the last day of shorter months.
 - Leap years are handled by calendar arithmetic, not fixed day counts.
 - Status is `unpaid`, `paid`, or `skipped`; **overdue** is derived (`unpaid` and `dueDate < today`) and is not a stored status.
 - Marking paid records the occurrence’s amount as one expense transaction on the payment date (default today) and links both records. Double counting is prevented because safe-to-spend reserves unpaid occurrences only and actual spending counts the linked transaction.
@@ -167,8 +173,26 @@ Expected income is **not** included in safe to spend. This is deliberately conse
 - Contributions reduce cash on hand because they are transfers to savings.
 - Progress is capped visually at 100% but the underlying amount can exceed the target.
 - Savings entries are not spending and are excluded from expense reports.
+- A **sinking fund** is a savings goal for a recurring annual expense (for example, gifts) and can also store a monthly target or a share of received income.
+- The suggested set-aside is the monthly target, or `autoSavePercent` of cleared income received this month when that is set, minus contributions already made this month. It can be `$0`.
+- A suggestion prefills the contribution dialog when the user chooses **Set aside**. Harbor never moves money automatically.
 
-### 6.7 Reports
+### 6.7 Envelopes
+
+- An envelope sets a monthly limit for one expense category and may carry unused money into the next month.
+- Spending is derived from cleared expense transactions in that category for the month. Pending transactions are shown in the transaction list but do not count against an envelope.
+- Envelopes are guidance. They do not reserve cash and do not change safe to spend.
+- Only one active envelope may exist per category.
+- Overspending is shown as a calm “over by” amount, never as an error.
+
+### 6.8 Notes
+
+- A note is either a **brain dump** (free text, optionally pinned) or a **month note** tied to one `YYYY-MM`.
+- Notes are plain text, stored locally, and capped at 4,000 characters. Harbor renders them without HTML.
+- Notes can be edited, pinned, archived, and restored. Archived notes never appear in the main list.
+- Notes are not financial records and never affect calculations.
+
+### 6.9 Reports
 
 - Monthly totals use transactions with dates inside the calendar month and `status = cleared`. Pending totals are shown separately.
 - Category breakdown excludes uncategorised into a labelled “Uncategorised” row.
@@ -176,7 +200,7 @@ Expected income is **not** included in safe to spend. This is deliberately conse
 
 ## 7. Data safety and privacy
 
-- Data stays in the browser’s IndexedDB. Tide does not send data to a server, load remote fonts, use analytics, or require a runtime CDN.
+- Data stays in the browser’s IndexedDB. Harbor does not send data to a server, load remote fonts, use analytics, or require a runtime CDN.
 - JSON backups are versioned and validated before restore. Restore requires an explicit confirmation and a downloaded safety copy of current data.
 - Restore runs in a single IndexedDB transaction. A failure leaves existing data unchanged.
 - The app never silently seeds over existing data. Sample data is optional, clearly labelled, and uses IDs prefixed `sample-`.

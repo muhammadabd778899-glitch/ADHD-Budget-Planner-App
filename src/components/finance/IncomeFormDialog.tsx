@@ -49,6 +49,7 @@ export function IncomeFormDialog({
   const [frequency, setFrequency] = useState<IncomeSource['frequency']>('biweekly');
   const [anchorDate, setAnchorDate] = useState(todayISO());
   const [endDate, setEndDate] = useState('');
+  const [accountId, setAccountId] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -61,11 +62,14 @@ export function IncomeFormDialog({
     setFrequency(source?.frequency ?? 'biweekly');
     setAnchorDate(source?.anchorDate ?? todayISO());
     setEndDate(source?.endDate ?? '');
+    setAccountId(
+      source?.accountId ?? snapshot?.accounts.find((account) => !account.archived)?.id ?? '',
+    );
     setNotes(source?.notes ?? '');
     setErrors({});
     setFormErrors([]);
     setSubmitting(false);
-  }, [open, source, currency]);
+  }, [open, source, currency, snapshot?.accounts]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,6 +79,7 @@ export function IncomeFormDialog({
       frequency,
       anchorDate,
       endDate,
+      accountId: accountId || null,
       notes,
     });
     const nextErrors: Record<string, string> = {};
@@ -103,6 +108,7 @@ export function IncomeFormDialog({
         frequency,
         anchorDate,
         endDate: endDate || null,
+        accountId: accountId || null,
         notes,
       };
       if (source) await actions.updateIncome(source.id, input);
@@ -123,7 +129,7 @@ export function IncomeFormDialog({
       open={open}
       onClose={onClose}
       title={source ? 'Edit income source' : 'Add income'}
-      description="Expected paydays help Tide plan the window until your next payday. Received money is recorded separately."
+      description="Expected paydays help Harbor plan the window until your next payday. Received money is recorded separately."
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={submitting}>
@@ -190,7 +196,7 @@ export function IncomeFormDialog({
             label={isOneTime ? 'Payday' : 'First expected payday'}
             htmlFor={`${baseId}-anchor`}
             error={errors.anchorDate}
-            hint="Tide projects from this date."
+            hint="Harbor projects from this date."
             required
           >
             <TextInput
@@ -217,6 +223,27 @@ export function IncomeFormDialog({
             />
           </Field>
         </div>
+        {(snapshot?.accounts.length ?? 0) > 1 ? (
+          <Field
+            label="Account"
+            htmlFor={`${baseId}-account`}
+            hint="Which account this income arrives in."
+          >
+            <Select
+              id={`${baseId}-account`}
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
+            >
+              {(snapshot?.accounts ?? [])
+                .filter((account) => !account.archived || account.id === accountId)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+            </Select>
+          </Field>
+        ) : null}
         <Field label="Note (optional)" htmlFor={`${baseId}-notes`}>
           <Textarea
             id={`${baseId}-notes`}

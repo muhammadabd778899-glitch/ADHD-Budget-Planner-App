@@ -6,6 +6,7 @@ import {
   FormErrorSummary,
   MoneyInput,
   SegmentedControl,
+  Select,
   TextInput,
   Textarea,
 } from '@/components/ui/Form';
@@ -16,6 +17,7 @@ import {
   currencyFractionDigits,
   currencySymbol,
   formatMoney,
+  minorToInput,
   parseMoneyToMinor,
 } from '@/lib/money';
 import { todayISO } from '@/lib/dates';
@@ -28,12 +30,14 @@ export function SavingsEntryDialog({
   goal,
   currentMinor,
   initialMode = 'contribute',
+  initialAmountMinor = 0,
 }: {
   open: boolean;
   onClose: () => void;
   goal: SavingsGoal | null;
   currentMinor: number;
   initialMode?: Mode;
+  initialAmountMinor?: number;
 }) {
   const { snapshot, actions, busy } = useAppData();
   const baseId = useId();
@@ -43,6 +47,7 @@ export function SavingsEntryDialog({
   const [mode, setMode] = useState<Mode>(initialMode);
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(todayISO());
+  const [accountId, setAccountId] = useState('');
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -51,13 +56,14 @@ export function SavingsEntryDialog({
   useEffect(() => {
     if (!open) return;
     setMode(initialMode);
-    setAmount('');
+    setAmount(initialAmountMinor > 0 ? minorToInput(initialAmountMinor, currency) : '');
     setDate(todayISO());
+    setAccountId(snapshot?.accounts.find((account) => !account.archived)?.id ?? '');
     setNote('');
     setErrors({});
     setFormErrors([]);
     setSubmitting(false);
-  }, [open, initialMode, goal]);
+  }, [open, initialMode, initialAmountMinor, goal, currency, snapshot?.accounts]);
 
   const amountMinor = parseMoneyToMinor(amount, currency);
   const tooMuch = mode === 'withdraw' && amountMinor !== null && amountMinor > currentMinor;
@@ -87,6 +93,7 @@ export function SavingsEntryDialog({
         mode === 'withdraw' ? -amountMinor : amountMinor,
         date,
         note,
+        accountId || null,
       );
       onClose();
     } catch {
@@ -151,6 +158,27 @@ export function SavingsEntryDialog({
             />
           </Field>
         </div>
+        {(snapshot?.accounts.length ?? 0) > 1 ? (
+          <Field
+            label="Account"
+            htmlFor={`${baseId}-account`}
+            hint="Where this transfer moves money."
+          >
+            <Select
+              id={`${baseId}-account`}
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
+            >
+              {(snapshot?.accounts ?? [])
+                .filter((account) => !account.archived || account.id === accountId)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+            </Select>
+          </Field>
+        ) : null}
         {tooMuch ? (
           <InlineNotice tone="warning">
             This goal holds {formatMoney(currentMinor, currency, locale)}. Choose a smaller

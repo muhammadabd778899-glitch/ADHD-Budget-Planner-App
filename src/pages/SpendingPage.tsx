@@ -3,14 +3,16 @@ import { useSearchParams } from 'react-router-dom';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/Dialog';
-import { EmptyState, InlineNotice } from '@/components/ui/Feedback';
+import { Badge, EmptyState, InlineNotice, ProgressBar } from '@/components/ui/Feedback';
 import { SegmentedControl, Select, TextInput } from '@/components/ui/Form';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { TransactionRow } from '@/components/finance/rows';
 import { TransactionFormDialog } from '@/components/finance/TransactionFormDialog';
+import { EnvelopeFormDialog } from '@/components/finance/EnvelopeFormDialog';
 import { useAppData } from '@/state/AppDataProvider';
 import { useToast } from '@/components/ui/ToastProvider';
-import type { Category, Transaction, TransactionStatus } from '@/domain/types';
+import type { Category, Envelope, Transaction, TransactionStatus } from '@/domain/types';
+import { envelopeProgressList } from '@/domain/envelopes';
 import { formatDateOnly, formatMonth, monthKey, todayISO } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 
@@ -19,6 +21,7 @@ type StatusFilter = 'all' | TransactionStatus;
 
 const EMPTY_TRANSACTIONS: Transaction[] = [];
 const EMPTY_CATEGORIES: Category[] = [];
+const EMPTY_ENVELOPES: Envelope[] = [];
 
 const TYPE_OPTIONS: Array<{ value: TypeFilter; label: string }> = [
   { value: 'all', label: 'Everything' },
@@ -47,6 +50,9 @@ export function SpendingPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
+  const [envelopeFormOpen, setEnvelopeFormOpen] = useState(false);
+  const [editingEnvelope, setEditingEnvelope] = useState<Envelope | null>(null);
+  const [archiveEnvelopeTarget, setArchiveEnvelopeTarget] = useState<Envelope | null>(null);
 
   const settings = snapshot?.settings;
   const currency = settings?.currency ?? 'USD';
@@ -54,10 +60,15 @@ export function SpendingPage() {
   const dateFormat = settings?.dateFormat ?? 'medium';
   const transactions = snapshot?.transactions ?? EMPTY_TRANSACTIONS;
   const categories = snapshot?.categories ?? EMPTY_CATEGORIES;
+  const envelopes = snapshot?.envelopes ?? EMPTY_ENVELOPES;
 
   const categoryMap = useMemo(
     () => new Map(categories.map((category) => [category.id, category])),
     [categories],
+  );
+  const envelopeRows = useMemo(
+    () => envelopeProgressList(envelopes, transactions, today),
+    [envelopes, transactions, today],
   );
 
   const stats = useMemo(() => {
@@ -127,6 +138,16 @@ export function SpendingPage() {
   function openEdit(transaction: Transaction) {
     setEditing(transaction);
     setFormOpen(true);
+  }
+
+  function openEnvelopeNew() {
+    setEditingEnvelope(null);
+    setEnvelopeFormOpen(true);
+  }
+
+  function openEnvelopeEdit(envelope: Envelope) {
+    setEditingEnvelope(envelope);
+    setEnvelopeFormOpen(true);
   }
 
   async function removeTransaction() {
@@ -203,8 +224,104 @@ export function SpendingPage() {
 
       <Card>
         <CardHeader
+          eyebrow="Envelopes"
+          title="Monthly category limits"
+          description="Envelopes compare cleared spending with a monthly amount. They guide choices without reserving cash or changing safe to spend."
+          action={
+            <Button variant="secondary" size="sm" icon="plus" onClick={openEnvelopeNew}>
+              Add envelope
+            </Button>
+          }
+        />
+        <CardBody>
+          {envelopeRows.length === 0 ? (
+            <EmptyState
+              icon="target"
+              title="No envelopes yet"
+              description="Set a monthly amount for a category you want to keep an eye on, like groceries or eating out."
+              action={
+                <Button variant="secondary" size="sm" icon="plus" onClick={openEnvelopeNew}>
+                  Add envelope
+                </Button>
+              }
+            />
+          ) : (
+            <div className="envelope-grid">
+              {envelopeRows.map((row) => {
+                const fundedMinor = row.envelope.monthlyAmountMinor * row.monthsTracked;
+                const usedPercent =
+                  fundedMinor > 0
+                    ? Math.min(
+                        100,
+                        Math.max(0, ((fundedMinor - row.availableMinor) / fundedMinor) * 100),
+                      )
+                    : 0;
+                return (
+                  <div className="envelope-card" key={row.envelope.id}>
+                    <div className="envelope-card__top">
+                      <div>
+                        <div className="source-card__title-line">
+                          <h3>{row.envelope.name}</h3>
+                          {row.envelope.sample ? <Badge tone="info">Sample</Badge> : null}
+                        </div>
+                        <p className="source-card__meta">
+                          {categoryMap.get(row.envelope.categoryId)?.name ?? 'Removed category'} ·{' '}
+                          {row.envelope.rollover ? 'Rolls over' : 'This month only'}
+                        </p>
+                      </div>
+                      <div className="inline-actions">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          iconOnly
+                          icon="edit"
+                          aria-label={`Edit ${row.envelope.name} envelope`}
+                          onClick={() => openEnvelopeEdit(row.envelope)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          iconOnly
+                          icon="trash"
+                          aria-label={`Archive ${row.envelope.name} envelope`}
+                          onClick={() => setArchiveEnvelopeTarget(row.envelope)}
+                        />
+                      </div>
+                    </div>
+                    <div className="envelope-card__amounts">
+                      <span>
+                        <strong>
+                          {formatMoney(Math.max(0, row.availableMinor), currency, locale)}
+                        </strong>{' '}
+                        {row.overspent ? 'over' : 'left'}
+                      </span>
+                      <span>
+                        {formatMoney(row.spentThisMonthMinor, currency, locale)} spent this month
+                      </span>
+                    </div>
+                    <ProgressBar
+                      label={`${row.envelope.name} envelope used`}
+                      value={usedPercent}
+                      tone={row.overspent ? 'apricot' : 'sky'}
+                      size="sm"
+                    />
+                    {row.envelope.rollover && row.monthsTracked > 1 ? (
+                      <p className="disclosure-note">
+                        Includes {row.monthsTracked} months since {row.envelope.startMonth}.
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
           title="Transaction list"
-          description="Bill and debt payments are linked records. Tide keeps them in sync with their source."
+          description="Bill and debt payments are linked records. Harbor keeps them in sync with their source."
           action={
             <ButtonLink to="/reports" variant="ghost" size="sm">
               See reports
@@ -365,6 +482,36 @@ export function SpendingPage() {
           setEditing(null);
         }}
         transaction={editing}
+      />
+
+      <EnvelopeFormDialog
+        open={envelopeFormOpen}
+        onClose={() => {
+          setEnvelopeFormOpen(false);
+          setEditingEnvelope(null);
+        }}
+        envelope={editingEnvelope}
+      />
+
+      <ConfirmDialog
+        open={archiveEnvelopeTarget !== null}
+        onClose={() => setArchiveEnvelopeTarget(null)}
+        onConfirm={() => {
+          if (archiveEnvelopeTarget) {
+            void actions
+              .archiveEnvelope(archiveEnvelopeTarget.id)
+              .then(() => setArchiveEnvelopeTarget(null))
+              .catch(() => undefined);
+          }
+        }}
+        title={
+          archiveEnvelopeTarget
+            ? `Archive ${archiveEnvelopeTarget.name}?`
+            : 'Archive this envelope?'
+        }
+        description="Its history stays with your transactions. You can restore the envelope later."
+        confirmLabel="Archive envelope"
+        busy={busy}
       />
 
       <ConfirmDialog

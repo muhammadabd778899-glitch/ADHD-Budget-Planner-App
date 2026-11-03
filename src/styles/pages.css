@@ -18,7 +18,7 @@
     radial-gradient(circle at 88% 12%, rgb(255 255 255 / 9%), transparent 42%),
     linear-gradient(150deg, var(--safe-card-b), var(--safe-card-a));
   color: var(--safe-card-text);
-  box-shadow: 0 24px 50px -30px rgb(18 46 36 / 70%);
+  box-shadow: 0 24px 50px -30px rgb(6 16 32 / 70%);
   overflow: hidden;
 }
 
@@ -35,7 +35,7 @@
 .safe-card--tight {
   background:
     radial-gradient(circle at 88% 12%, rgb(255 255 255 / 9%), transparent 42%),
-    linear-gradient(150deg, #5a4a30, #3d3322);
+    linear-gradient(150deg, #1a3a66, #091a31);
 }
 
 .safe-card__main {
@@ -1427,7 +1427,9 @@
   width: 46rem;
   height: 46rem;
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(142 175 154 / 26%), transparent 64%);
+  background:
+    radial-gradient(circle, rgb(59 111 212 / 22%), transparent 62%),
+    radial-gradient(circle at 70% 70%, rgb(217 185 120 / 14%), transparent 58%);
   pointer-events: none;
   z-index: 0;
 }
@@ -1478,10 +1480,10 @@
 .onboarding__panel {
   display: grid;
   gap: var(--space-4);
-  animation: tide-panel-in var(--duration-base) var(--ease-out);
+  animation: harbor-panel-in var(--duration-base) var(--ease-out);
 }
 
-@keyframes tide-panel-in {
+@keyframes harbor-panel-in {
   from {
     opacity: 0;
     transform: translateY(8px);

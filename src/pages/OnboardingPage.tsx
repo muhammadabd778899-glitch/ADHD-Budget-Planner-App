@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { BrandMark } from '@/components/ui/BrandMark';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import {
@@ -14,26 +15,8 @@ import { Icon } from '@/components/ui/Icon';
 import { useAppData } from '@/state/AppDataProvider';
 import type { IncomeFrequency, PlanMode } from '@/domain/types';
 import { currencySymbol, formatMoney, parseMoneyToMinor } from '@/lib/money';
+import { CURRENCY_CODES } from '@/lib/currencies';
 import { todayISO } from '@/lib/dates';
-
-const CURRENCIES = [
-  'USD',
-  'EUR',
-  'GBP',
-  'CAD',
-  'AUD',
-  'NZD',
-  'JPY',
-  'INR',
-  'ZAR',
-  'BRL',
-  'MXN',
-  'SEK',
-  'NOK',
-  'DKK',
-  'CHF',
-  'SGD',
-];
 
 const FREQUENCIES: Array<{ value: IncomeFrequency; label: string }> = [
   { value: 'biweekly', label: 'Every 2 weeks' },
@@ -127,15 +110,10 @@ export function OnboardingPage() {
     <div className="onboarding">
       <div className="onboarding__glow" aria-hidden="true" />
       <header className="onboarding__brand">
-        <span className="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32" role="presentation">
-            <path d="M5 18c4-6 8-6 11 0s7 6 11 0" />
-            <path d="M5 12c4-6 8-6 11 0s7 6 11 0" opacity="0.55" />
-          </svg>
-        </span>
+        <BrandMark />
         <div>
-          <p className="sidebar__wordmark">Tide</p>
-          <p className="sidebar__tagline">calm money planning</p>
+          <p className="sidebar__wordmark">Harbor</p>
+          <p className="sidebar__tagline">a safe harbor for money</p>
         </div>
       </header>
 
@@ -161,7 +139,7 @@ export function OnboardingPage() {
               mental tab-hopping.
             </h1>
             <p className="onboarding__lede">
-              Tide keeps one clear number in front of you — what is safe to spend — and quietly
+              Harbor keeps one clear number in front of you — what is safe to spend — and quietly
               holds the bills and goals behind it. No bank login. No shame. No spreadsheet.
             </p>
             <div className="onboarding__points">
@@ -180,7 +158,7 @@ export function OnboardingPage() {
             </div>
             <Card className="onboarding__card">
               <Field
-                label="What should Tide call you?"
+                label="What should Harbor call you?"
                 htmlFor="onboarding-name"
                 hint="Optional. It only changes the greeting."
               >
@@ -223,7 +201,7 @@ export function OnboardingPage() {
                     value={currency}
                     onChange={(event) => setCurrency(event.target.value)}
                   >
-                    {CURRENCIES.map((code) => (
+                    {CURRENCY_CODES.map((code) => (
                       <option key={code} value={code}>
                         {code}
                       </option>
@@ -247,7 +225,7 @@ export function OnboardingPage() {
               <Field
                 label="Peace-of-mind cushion"
                 htmlFor="onboarding-cushion"
-                hint="Money you want Tide to leave untouched. Safe to spend stops here."
+                hint="Money you want Harbor to leave untouched. Safe to spend stops here."
               >
                 <MoneyInput
                   id="onboarding-cushion"
@@ -258,7 +236,7 @@ export function OnboardingPage() {
                 />
               </Field>
               <div className="field">
-                <span className="field__label">How should Tide plan?</span>
+                <span className="field__label">How should Harbor plan?</span>
                 <SegmentedControl
                   label="Planning window"
                   value={planMode}
@@ -297,7 +275,7 @@ export function OnboardingPage() {
             <p className="eyebrow">Step 3 of 3</p>
             <h1 className="onboarding__title">When does money arrive?</h1>
             <p className="onboarding__lede">
-              Add one income source so Tide knows where your planning window ends. Skip it for now
+              Add one income source so Harbor knows where your planning window ends. Skip it for now
               if you prefer; you can add paydays later.
             </p>
             {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
@@ -363,7 +341,7 @@ export function OnboardingPage() {
                 Back
               </Button>
               <Button size="lg" type="submit" loading={finishing} icon="check">
-                Open Tide
+                Open Harbor
               </Button>
             </div>
           </form>

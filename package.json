@@ -1,9 +1,9 @@
 {
-  "name": "tide-budget-planner",
+  "name": "harbor-budget-planner",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Tide — a calm, local-first budget planner designed for ADHD brains.",
+  "description": "Harbor — a calm, local-first budget planner designed for ADHD brains.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

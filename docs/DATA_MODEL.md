@@ -6,13 +6,18 @@ All timestamps are ISO-8601 UTC strings. All date-only fields are `YYYY-MM-DD`. 
 
 ```
 settings (single record)
-categories ─────────────┐
-incomeSources           │
+accounts ──────────────┐
+categories ────────────┤
+incomeSources          │
 bills ──< billOccurrences ──> transactions (payment)
 transactions ──> debts (optional)
 transactions ──> categories (optional)
 savingsGoals ──< savingsEntries
+envelopes ──> categories (monthly limits)
+notes (brain dump / month notes)
 ```
+
+Accounts are labels for where money lives. Records may carry a nullable `accountId`; `null` belongs to the main account. The main account reads its starting balance and cushion from settings, while secondary accounts use their own opening balance and no cushion.
 
 ## `settings` (primary key: `id = "app"`)
 
@@ -29,7 +34,22 @@ savingsGoals ──< savingsEntries
 | `cushionMinor`           | integer ≥ 0                     | money kept untouched                                       |
 | `onboardingComplete`     | boolean                         | gates first-run flow                                       |
 | `sampleDataLoaded`       | boolean                         | whether sample records are currently present               |
+| `schemaVersion`          | integer                         | data-shape version; currently `3`                          |
 | `createdAt`, `updatedAt` | ISO string                      |                                                            |
+
+## `accounts`
+
+| Field                 | Type                                    | Notes                                 |
+| --------------------- | --------------------------------------- | ------------------------------------- |
+| `id`                  | string                                  | main account is `acct-main`           |
+| `name`                | string (1–40)                           |                                       |
+| `kind`                | `checking \| savings \| cash \| credit` | label only                            |
+| `openingBalanceMinor` | integer ≥ 0                             | used for secondary accounts           |
+| `archived`            | boolean                                 | hidden from pickers; history retained |
+| `sample`              | boolean                                 | sample-data isolation                 |
+| timestamps            |                                         |                                       |
+
+The main account cannot be archived. Editing the main account’s opening balance keeps `settings.startingBalanceMinor` in sync.
 
 ## `categories`
 
@@ -59,6 +79,7 @@ Default income categories: Paycheck, Side income, Refund, Other income.
 | `anchorDate`  | date                                                                    | first expected date; semimonthly uses the 1st and 15th |
 | `endDate`     | date \| null                                                            | inclusive stop                                         |
 | `active`      | boolean                                                                 | paused sources do not project                          |
+| `accountId`   | string \| null                                                          | where the income arrives; `null` = main account        |
 | `notes`       | string                                                                  | optional                                               |
 | `sample`      | boolean                                                                 |                                                        |
 | timestamps    |                                                                         |                                                        |
@@ -67,20 +88,22 @@ Received income is **not** stored here; it is an income transaction.
 
 ## `bills`
 
-| Field         | Type                                                               | Notes                                          |
-| ------------- | ------------------------------------------------------------------ | ---------------------------------------------- |
-| `id`          | string                                                             |                                                |
-| `name`        | string (1–60)                                                      |                                                |
-| `amountMinor` | integer ≥ 0                                                        | expected amount                                |
-| `frequency`   | `weekly \| biweekly \| monthly \| quarterly \| yearly \| one-time` |                                                |
-| `anchorDate`  | date                                                               | first due date                                 |
-| `endDate`     | date \| null                                                       | inclusive stop                                 |
-| `categoryId`  | string \| null                                                     | must exist if set                              |
-| `autoPay`     | boolean                                                            | informational only                             |
-| `notes`       | string                                                             |                                                |
-| `active`      | boolean                                                            | archived bills do not generate new occurrences |
-| `sample`      | boolean                                                            |                                                |
-| timestamps    |                                                                    |                                                |
+| Field         | Type                                                                              | Notes                                          |
+| ------------- | --------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `id`          | string                                                                            |                                                |
+| `name`        | string (1–60)                                                                     |                                                |
+| `amountMinor` | integer ≥ 0                                                                       | expected amount                                |
+| `frequency`   | `weekly \| biweekly \| semimonthly \| monthly \| quarterly \| yearly \| one-time` |                                                |
+| `anchorDate`  | date                                                                              | first due date                                 |
+| `endDate`     | date \| null                                                                      | inclusive stop                                 |
+| `secondDay`   | integer 2–31 \| null                                                              | semimonthly second due day; default 15         |
+| `categoryId`  | string \| null                                                                    | must exist if set                              |
+| `accountId`   | string \| null                                                                    | where the bill is paid from; `null` = main     |
+| `autoPay`     | boolean                                                                           | informational only                             |
+| `notes`       | string                                                                            |                                                |
+| `active`      | boolean                                                                           | archived bills do not generate new occurrences |
+| `sample`      | boolean                                                                           |                                                |
+| timestamps    |                                                                                   |                                                |
 
 ## `billOccurrences`
 
@@ -116,6 +139,7 @@ Unique index on `[billId+dueDate]` and `id` is deterministic.
 | `billOccurrenceId` | string \| null                               | unique for bill payments                     |
 | `debtId`           | string \| null                               | set for debt payments                        |
 | `incomeSourceId`   | string \| null                               | set when marking a projected payday received |
+| `accountId`        | string \| null                               | money moved from/to; `null` = main account   |
 | `sample`           | boolean                                      |                                              |
 | timestamps         |                                              |                                              |
 
@@ -145,18 +169,23 @@ Current balance is derived: `balanceMinor − Σ expense transactions with debtI
 
 ## `savingsGoals`
 
-| Field           | Type         | Notes                      |
-| --------------- | ------------ | -------------------------- |
-| `id`            | string       |                            |
-| `name`          | string       |                            |
-| `targetMinor`   | integer > 0  |                            |
-| `startingMinor` | integer ≥ 0  | already saved when created |
-| `targetDate`    | date \| null |                            |
-| `color`         | string       | token key                  |
-| `notes`         | string       |                            |
-| `archived`      | boolean      |                            |
-| `sample`        | boolean      |                            |
-| timestamps      |              |                            |
+| Field                | Type              | Notes                                          |
+| -------------------- | ----------------- | ---------------------------------------------- |
+| `id`                 | string            |                                                |
+| `name`               | string            |                                                |
+| `kind`               | `goal \| sinking` | sinking funds cover a recurring annual expense |
+| `targetMinor`        | integer > 0       |                                                |
+| `startingMinor`      | integer ≥ 0       | already saved when created                     |
+| `monthlyTargetMinor` | integer ≥ 0       | used by sinking funds for the set-aside hint   |
+| `autoSavePercent`    | integer 0–100     | optional share of received monthly income      |
+| `targetDate`         | date \| null      |                                                |
+| `color`              | string            | token key                                      |
+| `notes`              | string            |                                                |
+| `archived`           | boolean           |                                                |
+| `sample`             | boolean           |                                                |
+| timestamps           |                   |                                                |
+
+Suggestions never move money. For a sinking fund the hint is the monthly target or, when set, `autoSavePercent` of cleared income received this month, minus contributions already made this month. A hint can be `$0`.
 
 ## `savingsEntries`
 
@@ -167,8 +196,38 @@ Current balance is derived: `balanceMinor − Σ expense transactions with debtI
 | `amountMinor` | integer ≠ 0 | positive = contribution, negative = withdrawal |
 | `date`        | date        |                                                |
 | `note`        | string      |                                                |
+| `accountId`   | string      | account the transfer belongs to; `null` = main |
 | `sample`      | boolean     |                                                |
 | timestamps    |             |                                                |
+
+## `envelopes`
+
+| Field                | Type        | Notes                            |
+| -------------------- | ----------- | -------------------------------- |
+| `id`                 | string      |                                  |
+| `name`               | string      |                                  |
+| `categoryId`         | string      | one active envelope per category |
+| `monthlyAmountMinor` | integer > 0 | monthly category limit           |
+| `rollover`           | boolean     | carry unused amount forward      |
+| `startMonth`         | `YYYY-MM`   | first month the limit applies    |
+| `archived`           | boolean     | hidden from the Spending page    |
+| `sample`             | boolean     |                                  |
+| timestamps           |             |                                  |
+
+Envelopes are guidance computed from cleared expenses. They do not reserve cash and do not change safe to spend.
+
+## `notes`
+
+| Field      | Type                  | Notes                                  |
+| ---------- | --------------------- | -------------------------------------- |
+| `id`       | string                |                                        |
+| `kind`     | `brain-dump \| month` | month notes require `month`            |
+| `month`    | `YYYY-MM` \| null     | only used by month notes               |
+| `text`     | string (1–4000)       | plain text, rendered without rich HTML |
+| `pinned`   | boolean               | pinned notes sort first                |
+| `archived` | boolean               | restorable                             |
+| `sample`   | boolean               |                                        |
+| timestamps |                       |                                        |
 
 ## Backup format (`tide-backup`)
 
@@ -181,6 +240,7 @@ Current balance is derived: `balanceMinor − Σ expense transactions with debtI
   "counts": { "transactions": 42 },
   "data": {
     "settings": {},
+    "accounts": [],
     "categories": [],
     "incomeSources": [],
     "bills": [],
@@ -188,10 +248,14 @@ Current balance is derived: `balanceMinor − Σ expense transactions with debtI
     "transactions": [],
     "debts": [],
     "savingsGoals": [],
-    "savingsEntries": []
+    "savingsEntries": [],
+    "envelopes": [],
+    "notes": []
   }
 }
 ```
+
+Backups from before schema v3 remain valid: newer fields have defaults, and a missing main account is recreated on restore.
 
 Validation checks: format, version, size (≤ 15 MB), entity schemas, unique IDs, referential integrity, occurrence–transaction one-to-one, category kinds, and settings singleton. A restore replaces all tables in one transaction. Unknown future versions are rejected with a clear message.
 

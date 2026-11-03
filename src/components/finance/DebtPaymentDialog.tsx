@@ -126,7 +126,7 @@ export function DebtPaymentDialog({
         </div>
         {overpay ? (
           <InlineNotice tone="warning" title="This is more than the balance">
-            Tide will show a credit balance instead of hiding the overpayment. Check the amount if
+            Harbor will show a credit balance instead of hiding the overpayment. Check the amount if
             that is not what you intended.
           </InlineNotice>
         ) : null}

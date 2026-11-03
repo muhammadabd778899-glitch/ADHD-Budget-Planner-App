@@ -1,14 +1,17 @@
-import type { SavingsEntry, SavingsGoal } from '@/domain/types';
+import type { SavingsEntry, SavingsGoal, SavingsGoalKind } from '@/domain/types';
 import { savingsEntrySchema, savingsGoalSchema } from '@/domain/schemas';
-import type { TideDatabase } from '@/db/database';
+import type { HarborDatabase } from '@/db/database';
 import { AppError } from '@/db/errors';
 import { createId, nowIso } from '@/lib/ids';
 import { isValidDateOnly } from '@/lib/dates';
 
 export interface SavingsGoalInput {
   name: string;
+  kind?: SavingsGoalKind;
   targetMinor: number;
   startingMinor: number;
+  monthlyTargetMinor?: number;
+  autoSavePercent?: number;
   targetDate: string | null;
   color: string;
   notes?: string;
@@ -23,13 +26,27 @@ function validate(input: SavingsGoalInput): string[] {
   if (!Number.isSafeInteger(input.startingMinor) || input.startingMinor < 0) {
     errors.push('Enter a valid starting amount.');
   }
+  if (
+    input.monthlyTargetMinor !== undefined &&
+    (!Number.isSafeInteger(input.monthlyTargetMinor) || input.monthlyTargetMinor < 0)
+  ) {
+    errors.push('Enter a valid monthly amount.');
+  }
+  if (
+    input.autoSavePercent !== undefined &&
+    (!Number.isInteger(input.autoSavePercent) ||
+      input.autoSavePercent < 0 ||
+      input.autoSavePercent > 100)
+  ) {
+    errors.push('The auto-save percentage must be between 0 and 100.');
+  }
   if (input.targetDate && !isValidDateOnly(input.targetDate)) {
     errors.push('Choose a valid target date.');
   }
   return errors;
 }
 
-export function createSavingsRepository(database: TideDatabase) {
+export function createSavingsRepository(database: HarborDatabase) {
   return {
     async listGoals(): Promise<SavingsGoal[]> {
       const rows = await database.savingsGoals.toArray();
@@ -55,8 +72,11 @@ export function createSavingsRepository(database: TideDatabase) {
       const goal: SavingsGoal = {
         id: createId('goal'),
         name: input.name.trim(),
+        kind: input.kind ?? 'goal',
         targetMinor: input.targetMinor,
         startingMinor: input.startingMinor,
+        monthlyTargetMinor: input.monthlyTargetMinor ?? 0,
+        autoSavePercent: input.autoSavePercent ?? 0,
         targetDate: input.targetDate || null,
         color: input.color,
         notes: input.notes?.trim() ?? '',
@@ -79,8 +99,11 @@ export function createSavingsRepository(database: TideDatabase) {
       const next: SavingsGoal = {
         ...current,
         name: input.name.trim(),
+        kind: input.kind ?? current.kind,
         targetMinor: input.targetMinor,
         startingMinor: input.startingMinor,
+        monthlyTargetMinor: input.monthlyTargetMinor ?? current.monthlyTargetMinor,
+        autoSavePercent: input.autoSavePercent ?? current.autoSavePercent,
         targetDate: input.targetDate || null,
         color: input.color,
         notes: input.notes?.trim() ?? '',
@@ -109,6 +132,7 @@ export function createSavingsRepository(database: TideDatabase) {
       amountMinor: number,
       date: string,
       note = '',
+      accountId: string | null = null,
     ): Promise<SavingsEntry> {
       if (!Number.isSafeInteger(amountMinor) || amountMinor === 0) {
         throw new AppError('VALIDATION', 'Enter an amount greater than zero.');
@@ -124,6 +148,7 @@ export function createSavingsRepository(database: TideDatabase) {
         amountMinor,
         date,
         note: note.trim(),
+        accountId,
         sample: goal.sample,
         createdAt: now,
         updatedAt: now,

@@ -30,6 +30,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: '/spending', label: 'Spending', icon: 'wallet' },
       { to: '/debt', label: 'Debt', icon: 'card' },
       { to: '/savings', label: 'Savings', icon: 'piggy' },
+      { to: '/notes', label: 'Notes', icon: 'list' },
     ],
   },
   {
@@ -48,7 +49,8 @@ export const MORE_NAV: NavItem[] = [
   { to: '/income', label: 'Paydays', icon: 'calendar' },
   { to: '/debt', label: 'Debt', icon: 'card' },
   { to: '/savings', label: 'Savings', icon: 'piggy' },
+  { to: '/notes', label: 'Notes', icon: 'list' },
   { to: '/reports', label: 'Reports', icon: 'chart' },
   { to: '/settings', label: 'Settings', icon: 'settings' },
-  { to: '/help', label: 'How Tide works', icon: 'help' },
+  { to: '/help', label: 'How Harbor works', icon: 'help' },
 ];

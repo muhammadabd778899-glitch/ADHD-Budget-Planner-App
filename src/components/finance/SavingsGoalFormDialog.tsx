@@ -1,7 +1,15 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
-import { Field, FormErrorSummary, MoneyInput, TextInput, Textarea } from '@/components/ui/Form';
+import {
+  Field,
+  FormErrorSummary,
+  MoneyInput,
+  SegmentedControl,
+  TextInput,
+  Textarea,
+} from '@/components/ui/Form';
+import { InlineNotice } from '@/components/ui/Feedback';
 import { useAppData } from '@/state/AppDataProvider';
 import type { SavingsGoal } from '@/domain/types';
 import { savingsGoalFormSchema } from '@/domain/schemas';
@@ -36,8 +44,11 @@ export function SavingsGoalFormDialog({
   const locale = snapshot?.settings.locale ?? 'en-US';
   const symbol = currencySymbol(currency, locale);
   const [name, setName] = useState('');
+  const [kind, setKind] = useState<SavingsGoal['kind']>('goal');
   const [target, setTarget] = useState('');
   const [starting, setStarting] = useState('');
+  const [monthlyTarget, setMonthlyTarget] = useState('');
+  const [autoSavePercent, setAutoSavePercent] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [color, setColor] = useState('sage');
   const [notes, setNotes] = useState('');
@@ -48,8 +59,13 @@ export function SavingsGoalFormDialog({
   useEffect(() => {
     if (!open) return;
     setName(goal?.name ?? '');
+    setKind(goal?.kind ?? 'goal');
     setTarget(goal ? minorToInput(goal.targetMinor, currency) : '');
     setStarting(goal ? minorToInput(goal.startingMinor, currency) : '');
+    setMonthlyTarget(
+      goal && goal.monthlyTargetMinor > 0 ? minorToInput(goal.monthlyTargetMinor, currency) : '',
+    );
+    setAutoSavePercent(goal && goal.autoSavePercent > 0 ? String(goal.autoSavePercent) : '');
     setTargetDate(goal?.targetDate ?? '');
     setColor(goal?.color ?? 'sage');
     setNotes(goal?.notes ?? '');
@@ -62,8 +78,11 @@ export function SavingsGoalFormDialog({
     event.preventDefault();
     const parsed = savingsGoalFormSchema.safeParse({
       name,
+      kind,
       target,
       starting,
+      monthlyTarget,
+      autoSavePercent,
       targetDate,
       color,
       notes,
@@ -87,17 +106,37 @@ export function SavingsGoalFormDialog({
       nextErrors.starting = `Enter a valid starting amount, with up to ${currencyFractionDigits(currency)} decimal places.`;
       summaries.push(nextErrors.starting);
     }
+    const monthlyTargetMinor = monthlyTarget.trim()
+      ? parseMoneyToMinor(monthlyTarget, currency)
+      : 0;
+    if (monthlyTargetMinor === null || monthlyTargetMinor < 0) {
+      nextErrors.monthlyTarget = 'Enter a valid monthly target, or leave it empty.';
+      summaries.push(nextErrors.monthlyTarget);
+    }
+    const autoSaveValue = autoSavePercent.trim() === '' ? 0 : Number(autoSavePercent);
+    if (!Number.isInteger(autoSaveValue) || autoSaveValue < 0 || autoSaveValue > 100) {
+      nextErrors.autoSavePercent = 'Choose a whole percentage between 0 and 100.';
+      summaries.push(nextErrors.autoSavePercent);
+    }
     setErrors(nextErrors);
     setFormErrors(summaries);
-    if (Object.keys(nextErrors).length > 0 || targetMinor === null || startingMinor === null)
+    if (
+      Object.keys(nextErrors).length > 0 ||
+      targetMinor === null ||
+      startingMinor === null ||
+      monthlyTargetMinor === null
+    )
       return;
 
     setSubmitting(true);
     try {
       const input = {
         name,
+        kind,
         targetMinor,
         startingMinor,
+        monthlyTargetMinor,
+        autoSavePercent: autoSaveValue,
         targetDate: targetDate || null,
         color,
         notes,
@@ -131,6 +170,21 @@ export function SavingsGoalFormDialog({
     >
       <form id={`${baseId}-form`} onSubmit={handleSubmit} noValidate className="stack">
         <FormErrorSummary errors={formErrors} />
+        <SegmentedControl
+          label="Kind of savings"
+          value={kind}
+          onChange={setKind}
+          options={[
+            { value: 'goal', label: 'Goal' },
+            { value: 'sinking', label: 'Sinking fund' },
+          ]}
+        />
+        {kind === 'sinking' ? (
+          <InlineNotice tone="info" title="A sinking fund has a monthly rhythm">
+            Set a monthly amount, or a percentage of received income. Harbor suggests an amount to
+            set aside — it never moves money on its own.
+          </InlineNotice>
+        ) : null}
         <Field label="Goal name" htmlFor={`${baseId}-name`} error={errors.name} required>
           <TextInput
             id={`${baseId}-name`}
@@ -171,6 +225,44 @@ export function SavingsGoalFormDialog({
             />
           </Field>
         </div>
+        {kind === 'sinking' ? (
+          <div className="form-grid form-grid--2">
+            <Field
+              label="Monthly target (optional)"
+              htmlFor={`${baseId}-monthly`}
+              error={errors.monthlyTarget}
+              hint="Takes priority over the percentage."
+            >
+              <MoneyInput
+                id={`${baseId}-monthly`}
+                value={monthlyTarget}
+                onChange={(event) => setMonthlyTarget(event.target.value)}
+                currencySymbol={symbol}
+                invalid={Boolean(errors.monthlyTarget)}
+                aria-describedby={errors.monthlyTarget ? `${baseId}-monthly-error` : undefined}
+              />
+            </Field>
+            <Field
+              label="Share of income (optional)"
+              htmlFor={`${baseId}-percent`}
+              error={errors.autoSavePercent}
+              hint="A suggestion based on income you actually received this month."
+            >
+              <TextInput
+                id={`${baseId}-percent`}
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                value={autoSavePercent}
+                onChange={(event) => setAutoSavePercent(event.target.value)}
+                placeholder="10"
+                invalid={Boolean(errors.autoSavePercent)}
+                aria-describedby={errors.autoSavePercent ? `${baseId}-percent-error` : undefined}
+              />
+            </Field>
+          </div>
+        ) : null}
         <div className="form-grid form-grid--2">
           <Field
             label="Target date (optional)"

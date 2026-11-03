@@ -14,6 +14,7 @@ export interface RecurrenceRule {
   frequency: RecurrenceFrequency;
   anchorDate: DateOnly;
   endDate?: DateOnly | null;
+  secondDay?: number | null;
 }
 
 const MAX_OCCURRENCES = 20_000;
@@ -54,7 +55,8 @@ function validRule(rule: RecurrenceRule): boolean {
 /**
  * Returns every occurrence date in the inclusive [from, to] window.
  * Monthly/quarterly/yearly rules keep the anchor day where possible and clamp
- * to the last day of shorter months. Semimonthly is fixed to the 1st and 15th.
+ * to the last day of shorter months. Semimonthly uses the 1st and the
+ * configured second day (the 15th when none is given).
  */
 export function occurrenceDatesInRange(
   rule: RecurrenceRule,
@@ -106,11 +108,13 @@ export function occurrenceDatesInRange(
     }
     case 'semimonthly': {
       const anchorParts = parseParts(anchor);
+      const secondDay =
+        rule.secondDay && rule.secondDay >= 2 && rule.secondDay <= 31 ? rule.secondDay : 15;
       let cursor: MonthCursor = { year: anchorParts.year, month: anchorParts.month - 1 };
       for (let i = 0; i < 1200; i += 1) {
         const monthDates = [
           makeDate(cursor.year, cursor.month, 1),
-          makeDate(cursor.year, cursor.month, 15),
+          makeDate(cursor.year, cursor.month, secondDay),
         ];
         for (const date of monthDates) push(date);
         if (compareDates(monthDates[1] ?? monthDates[0]!, effectiveTo) >= 0) break;

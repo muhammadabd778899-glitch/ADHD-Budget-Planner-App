@@ -23,13 +23,13 @@ export function asAppError(error: unknown): AppError {
     if (/quota/i.test(error.name) || /quota/i.test(error.message)) {
       return new AppError(
         'STORAGE',
-        'This browser is out of storage space for Tide. Export a backup, then free some space.',
+        'This browser is out of storage space for Harbor. Export a backup, then free some space.',
       );
     }
     if (/DatabaseClosed|InvalidState|VersionError/i.test(error.name)) {
       return new AppError(
         'STORAGE',
-        'Tide could not open its local database. Close other Tide tabs and reload.',
+        'Harbor could not open its local database. Close other Harbor tabs and reload.',
       );
     }
     return new AppError('UNKNOWN', 'Something went wrong. Your saved data was not changed.');

@@ -23,8 +23,9 @@ body {
   margin: 0;
   background-color: var(--bg);
   background-image:
-    radial-gradient(circle at 12% -10%, rgb(142 175 154 / 18%), transparent 46%),
-    radial-gradient(circle at 96% 4%, rgb(224 175 137 / 12%), transparent 42%);
+    radial-gradient(1100px 620px at 6% -14%, rgb(59 111 212 / 13%), transparent 62%),
+    radial-gradient(900px 540px at 102% -4%, rgb(180 139 58 / 9%), transparent 58%),
+    linear-gradient(180deg, var(--bg-tint), var(--bg) 46%);
   background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-sans);
@@ -33,6 +34,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-wrap: break-word;
+}
+
+:root[data-theme='dark'] body {
+  background-image:
+    radial-gradient(1100px 620px at 6% -14%, rgb(56 108 210 / 20%), transparent 62%),
+    radial-gradient(900px 540px at 102% -4%, rgb(180 139 58 / 10%), transparent 58%),
+    linear-gradient(180deg, var(--bg-tint), var(--bg) 48%);
 }
 
 #root {
@@ -76,8 +84,15 @@ h4 {
   text-wrap: balance;
 }
 
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
 h1 {
-  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
+  font-size: clamp(1.7rem, 1.2rem + 1.7vw, 2.4rem);
 }
 
 h2 {
@@ -131,6 +146,28 @@ hr {
 ::selection {
   background: var(--sage-line);
   color: var(--text-strong);
+}
+
+/* Quiet, premium scrollbars on supporting browsers */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--line-strong);
+  background-clip: content-box;
 }
 
 :focus-visible {

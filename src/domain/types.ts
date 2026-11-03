@@ -11,12 +11,22 @@ export type IncomeFrequency = (typeof INCOME_FREQUENCIES)[number];
 export const BILL_FREQUENCIES = [
   'weekly',
   'biweekly',
+  'semimonthly',
   'monthly',
   'quarterly',
   'yearly',
   'one-time',
 ] as const;
 export type BillFrequency = (typeof BILL_FREQUENCIES)[number];
+
+export const ACCOUNT_KINDS = ['checking', 'savings', 'cash', 'credit'] as const;
+export type AccountKind = (typeof ACCOUNT_KINDS)[number];
+
+export const SAVINGS_GOAL_KINDS = ['goal', 'sinking'] as const;
+export type SavingsGoalKind = (typeof SAVINGS_GOAL_KINDS)[number];
+
+export const NOTE_KINDS = ['brain-dump', 'month'] as const;
+export type NoteKind = (typeof NOTE_KINDS)[number];
 
 export const TRANSACTION_TYPES = ['expense', 'income'] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
@@ -74,6 +84,15 @@ export interface Settings extends Timestamps {
   schemaVersion: number;
 }
 
+export interface Account extends Timestamps {
+  id: string;
+  name: string;
+  kind: AccountKind;
+  openingBalanceMinor: number;
+  archived: boolean;
+  sample: boolean;
+}
+
 export interface Category extends Timestamps {
   id: string;
   name: string;
@@ -93,6 +112,7 @@ export interface IncomeSource extends Timestamps {
   anchorDate: DateOnly;
   endDate: DateOnly | null;
   active: boolean;
+  accountId: string | null;
   notes: string;
   sample: boolean;
 }
@@ -104,7 +124,9 @@ export interface Bill extends Timestamps {
   frequency: BillFrequency;
   anchorDate: DateOnly;
   endDate: DateOnly | null;
+  secondDay: number | null;
   categoryId: string | null;
+  accountId: string | null;
   autoPay: boolean;
   notes: string;
   active: boolean;
@@ -137,6 +159,7 @@ export interface Transaction extends Timestamps {
   billOccurrenceId: string | null;
   debtId: string | null;
   incomeSourceId: string | null;
+  accountId: string | null;
   sample: boolean;
 }
 
@@ -156,8 +179,11 @@ export interface Debt extends Timestamps {
 export interface SavingsGoal extends Timestamps {
   id: string;
   name: string;
+  kind: SavingsGoalKind;
   targetMinor: number;
   startingMinor: number;
+  monthlyTargetMinor: number;
+  autoSavePercent: number;
   targetDate: DateOnly | null;
   color: string;
   notes: string;
@@ -171,11 +197,34 @@ export interface SavingsEntry extends Timestamps {
   amountMinor: number;
   date: DateOnly;
   note: string;
+  accountId: string | null;
+  sample: boolean;
+}
+
+export interface Envelope extends Timestamps {
+  id: string;
+  name: string;
+  categoryId: string;
+  monthlyAmountMinor: number;
+  rollover: boolean;
+  startMonth: string;
+  archived: boolean;
+  sample: boolean;
+}
+
+export interface Note extends Timestamps {
+  id: string;
+  kind: NoteKind;
+  month: string | null;
+  text: string;
+  pinned: boolean;
+  archived: boolean;
   sample: boolean;
 }
 
 export interface AppSnapshot {
   settings: Settings;
+  accounts: Account[];
   categories: Category[];
   incomeSources: IncomeSource[];
   bills: Bill[];
@@ -184,6 +233,8 @@ export interface AppSnapshot {
   debts: Debt[];
   savingsGoals: SavingsGoal[];
   savingsEntries: SavingsEntry[];
+  envelopes: Envelope[];
+  notes: Note[];
   storage: StorageHealth;
 }
 

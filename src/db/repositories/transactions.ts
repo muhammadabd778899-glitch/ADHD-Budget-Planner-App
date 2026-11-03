@@ -5,7 +5,7 @@ import type {
   TransactionType,
 } from '@/domain/types';
 import { transactionSchema } from '@/domain/schemas';
-import type { TideDatabase } from '@/db/database';
+import type { HarborDatabase } from '@/db/database';
 import { AppError } from '@/db/errors';
 import { createId, nowIso } from '@/lib/ids';
 import { isValidDateOnly } from '@/lib/dates';
@@ -23,10 +23,11 @@ export interface TransactionInput {
   billOccurrenceId?: string | null;
   debtId?: string | null;
   incomeSourceId?: string | null;
+  accountId?: string | null;
   sample?: boolean;
 }
 
-export function createTransactionsRepository(database: TideDatabase) {
+export function createTransactionsRepository(database: HarborDatabase) {
   async function validateLinks(
     input: TransactionInput,
     allowBillOccurrence = false,
@@ -57,6 +58,10 @@ export function createTransactionsRepository(database: TideDatabase) {
       }
       const source = await database.incomeSources.get(input.incomeSourceId);
       if (!source) throw new AppError('VALIDATION', 'That income source is no longer available.');
+    }
+    if (input.accountId) {
+      const account = await database.accounts.get(input.accountId);
+      if (!account) throw new AppError('VALIDATION', 'That account is no longer available.');
     }
   }
 
@@ -105,6 +110,7 @@ export function createTransactionsRepository(database: TideDatabase) {
         billOccurrenceId: input.billOccurrenceId ?? null,
         debtId: input.debtId ?? null,
         incomeSourceId: input.incomeSourceId ?? null,
+        accountId: input.accountId ?? null,
         sample: input.sample ?? false,
         createdAt: now,
         updatedAt: now,
@@ -163,6 +169,7 @@ export function createTransactionsRepository(database: TideDatabase) {
         categoryId: input.categoryId,
         notes: input.notes?.trim() ?? '',
         status: input.status,
+        accountId: input.accountId ?? current.accountId,
         updatedAt: nowIso(),
       };
       const parsed = transactionSchema.safeParse(next);

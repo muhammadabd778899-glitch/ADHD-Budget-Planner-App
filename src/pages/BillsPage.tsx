@@ -5,6 +5,7 @@ import { Badge, Disclosure, EmptyState, InlineNotice } from '@/components/ui/Fee
 import { ConfirmDialog } from '@/components/ui/Dialog';
 import { SegmentedControl } from '@/components/ui/Form';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { BillCalendar } from '@/components/finance/BillCalendar';
 import { BillOccurrenceRow } from '@/components/finance/rows';
 import { BillFormDialog } from '@/components/finance/BillFormDialog';
 import { useAppData } from '@/state/AppDataProvider';
@@ -17,11 +18,13 @@ import {
   formatMonth,
   monthKey,
   relativeDayLabel,
+  startOfMonth,
   todayISO,
 } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 
 type Tab = 'upcoming' | 'paid' | 'skipped' | 'all';
+type View = 'list' | 'calendar';
 
 const EMPTY_BILLS: Bill[] = [];
 const EMPTY_OCCURRENCES: BillOccurrence[] = [];
@@ -31,6 +34,8 @@ const EMPTY_CATEGORIES: Category[] = [];
 export function BillsPage() {
   const { snapshot, actions, busy } = useAppData();
   const [tab, setTab] = useState<Tab>('upcoming');
+  const [view, setView] = useState<View>('list');
+  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(todayISO()));
   const [formOpen, setFormOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [unpayTarget, setUnpayTarget] = useState<BillOccurrence | null>(null);
@@ -237,7 +242,11 @@ export function BillsPage() {
       <Card>
         <CardHeader
           title="Due dates"
-          description="Showing the next 60 days on the upcoming tab. Paid and skipped tabs keep history."
+          description={
+            view === 'calendar'
+              ? 'Every bill occurrence in the selected month. Use the arrows to look ahead or back.'
+              : 'Showing the next 60 days on the upcoming tab. Paid and skipped tabs keep history.'
+          }
           action={
             <Badge tone="neutral" icon="info">
               One payment = one expense
@@ -245,20 +254,41 @@ export function BillsPage() {
           }
         />
         <CardBody>
-          <div className="filter-row">
+          <div className={`filter-row${view === 'list' ? ' filter-row--split' : ''}`}>
+            {view === 'list' ? (
+              <SegmentedControl
+                label="Bill occurrence filter"
+                value={tab}
+                onChange={setTab}
+                options={[
+                  { value: 'upcoming', label: `Upcoming (${upcomingCount})` },
+                  { value: 'paid', label: `Paid (${paidCount})` },
+                  { value: 'skipped', label: `Skipped (${skippedCount})` },
+                  { value: 'all', label: 'All' },
+                ]}
+              />
+            ) : null}
             <SegmentedControl
-              label="Bill occurrence filter"
-              value={tab}
-              onChange={setTab}
+              label="Due date view"
+              value={view}
+              onChange={setView}
               options={[
-                { value: 'upcoming', label: `Upcoming (${upcomingCount})` },
-                { value: 'paid', label: `Paid (${paidCount})` },
-                { value: 'skipped', label: `Skipped (${skippedCount})` },
-                { value: 'all', label: 'All' },
+                { value: 'list', label: 'List' },
+                { value: 'calendar', label: 'Calendar' },
               ]}
             />
           </div>
-          {visible.length === 0 ? (
+          {view === 'calendar' ? (
+            <BillCalendar
+              month={calendarMonth}
+              occurrences={occurrences}
+              bills={bills}
+              currency={currency}
+              locale={locale}
+              today={today}
+              onMonthChange={setCalendarMonth}
+            />
+          ) : visible.length === 0 ? (
             <EmptyState
               icon="receipt"
               title={emptyCopy[tab].title}
@@ -314,7 +344,7 @@ export function BillsPage() {
       <Card>
         <CardHeader title="How bills and spending stay in sync" />
         <CardBody>
-          <Disclosure summary="Show the rules Tide follows">
+          <Disclosure summary="Show the rules Harbor follows">
             <ul className="plain-list">
               <li>
                 An unpaid occurrence is reserved in safe to spend until its due date leaves the

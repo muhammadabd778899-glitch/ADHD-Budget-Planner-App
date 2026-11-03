@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { BrandMark } from '@/components/ui/BrandMark';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Button, ButtonLink } from '@/components/ui/Button';
 
@@ -130,11 +131,9 @@ export function Skeleton({ lines = 3 }: { lines?: number }) {
 export function LoadingScreen({ label = 'Opening your local plan…' }: { label?: string }) {
   return (
     <div className="loading-screen" role="status" aria-live="polite">
-      <span className="loading-screen__mark" aria-hidden="true">
-        <Icon name="sparkle" size={26} />
-      </span>
+      <BrandMark className="brand-mark--large" />
       <div>
-        <p className="loading-screen__title">Tide</p>
+        <p className="loading-screen__title">Harbor</p>
         <p className="loading-screen__label">{label}</p>
       </div>
       <Skeleton lines={2} />
@@ -180,7 +179,7 @@ export function ErrorScreen({
           </ButtonLink>
         </div>
         <p className="error-screen__privacy">
-          Tide did not send your data anywhere. If this keeps happening, reload the page and avoid
+          Harbor did not send your data anywhere. If this keeps happening, reload the page and avoid
           clearing site data.
         </p>
       </div>

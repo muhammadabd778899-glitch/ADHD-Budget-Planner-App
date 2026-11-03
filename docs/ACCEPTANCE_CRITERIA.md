@@ -91,18 +91,33 @@ Each item is testable. Milestone status is recorded in `docs/MILESTONES.md`.
 - [x] Sample data is optional, labelled, isolated, removable.
 - [ ] Production artifact tested in a clean profile (see M8 report).
 
+## Premium redesign and ease of use (M10)
+
+- [x] Navy and porcelain "Midnight Harbor" palette replaces the green-first theme in light and dark modes.
+- [x] Harbor name and finance-close chart mark replace the wave mark across app, manifest, icons, and docs.
+- [x] Premium motion (page rise, safe-card glow, button sweep, metric lift) with reduced-motion fallbacks.
+- [x] Premium shell, typography, safe-to-spend hero, buttons, cards, dialogs, and progress styling.
+- [x] Rebranded favicon, PWA icons, manifest colours, and browser theme colours.
+- [x] Bill list **and** calendar views, paid/skipped history, overdue outlines, and weekend due-date labels.
+- [x] Debt suggested payoff focus with an honest "not financial advice" note.
+- [x] Focus mode, Right Now next action, runway to payday, quick-fill amounts, and keyboard shortcuts.
+- [x] Dialogs centred on desktop and readable on mobile; no clipping or off-screen panels.
+- [x] Customer guide rewritten with setup, screen-by-screen guidance, workflows, backup, offline, privacy, and troubleshooting.
+- [x] Listing copy expanded and paired with an explicit list of unsupported claims.
+- [x] Deployment files untouched; production build verified with the `/ADHD-Budget-Planner-App/` base path.
+
 ## Release (M9)
 
 - [x] Full verification pipeline passes.
 - [x] Financial calculation audit documented.
 - [x] Fresh-buyer simulation documented.
 - [x] Quick-start, offline, backup, feature, troubleshooting, license/support docs.
-- [ ] Etsy copy avoids unsupported claims.
+- [x] Etsy copy avoids unsupported claims.
 - [ ] Version, checksums, and package contents recorded.
 
 ## Post-release owner actions
 
-- [ ] Enable GitHub Pages for the repository.
+- [x] Enable GitHub Pages for the repository.
 - [ ] Publish the public listing copy.
 - [ ] Complete the clean-profile offline acceptance pass.
 - [ ] Record final release checksums and package contents.

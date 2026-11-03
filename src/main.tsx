@@ -5,7 +5,7 @@ import '@/styles/index.css';
 
 const container = document.getElementById('root');
 if (!container) {
-  throw new Error('Tide could not find its root element.');
+  throw new Error('Harbor could not find its root element.');
 }
 
 createRoot(container).render(

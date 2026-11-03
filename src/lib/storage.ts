@@ -58,5 +58,5 @@ export function downloadFile(filename: string, contents: string, mime: string): 
 
 export function makeFilename(prefix: string, extension: string, date = new Date()): string {
   const stamp = date.toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  return `tide-${prefix}-${stamp}.${extension}`;
+  return `harbor-${prefix}-${stamp}.${extension}`;
 }

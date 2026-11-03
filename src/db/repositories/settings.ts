@@ -1,6 +1,6 @@
 import type { Settings } from '@/domain/types';
 import { settingsSchema } from '@/domain/schemas';
-import type { TideDatabase } from '@/db/database';
+import type { HarborDatabase } from '@/db/database';
 import { AppError } from '@/db/errors';
 import { defaultSettings } from '@/db/defaults';
 import { nowIso } from '@/lib/ids';
@@ -9,14 +9,14 @@ export type SettingsPatch = Partial<
   Omit<Settings, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>
 >;
 
-export function createSettingsRepository(database: TideDatabase) {
+export function createSettingsRepository(database: HarborDatabase) {
   return {
     async get(): Promise<Settings> {
       const record = await database.settings.get('app');
       if (!record) {
         throw new AppError(
           'NOT_FOUND',
-          'Tide could not find its settings. Reload to finish setup.',
+          'Harbor could not find its settings. Reload to finish setup.',
         );
       }
       return record;
@@ -28,7 +28,7 @@ export function createSettingsRepository(database: TideDatabase) {
       const created = defaultSettings();
       const parsed = settingsSchema.safeParse(created);
       if (!parsed.success) {
-        throw new AppError('VALIDATION', 'Tide could not create its initial settings.');
+        throw new AppError('VALIDATION', 'Harbor could not create its initial settings.');
       }
       await database.settings.add(parsed.data);
       return parsed.data;
@@ -40,7 +40,7 @@ export function createSettingsRepository(database: TideDatabase) {
         ...current,
         ...patch,
         id: 'app',
-        schemaVersion: 2,
+        schemaVersion: 3,
         updatedAt: nowIso(),
       };
       const parsed = settingsSchema.safeParse(next);

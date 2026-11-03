@@ -21,7 +21,7 @@ export function NotFoundPage() {
               Back to Today
             </ButtonLink>
             <ButtonLink to="/help" variant="secondary" icon="help">
-              How Tide works
+              How Harbor works
             </ButtonLink>
           </div>
         </CardBody>

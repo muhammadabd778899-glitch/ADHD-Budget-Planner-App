@@ -1,8 +1,11 @@
 import type {
+  Account,
   Bill,
   BillOccurrence,
   Debt,
+  Envelope,
   IncomeSource,
+  Note,
   SavingsEntry,
   SavingsGoal,
   Settings,
@@ -25,7 +28,52 @@ export function makeSettings(overrides: Partial<Settings> = {}): Settings {
     cushionMinor: 0,
     onboardingComplete: true,
     sampleDataLoaded: false,
-    schemaVersion: 2,
+    schemaVersion: 3,
+    createdAt: CREATED,
+    updatedAt: UPDATED,
+    ...overrides,
+  };
+}
+
+export function makeAccount(overrides: Partial<Account> = {}): Account {
+  return {
+    id: `acct-${Math.random().toString(36).slice(2, 9)}`,
+    name: 'Checking',
+    kind: 'checking',
+    openingBalanceMinor: 0,
+    archived: false,
+    sample: false,
+    createdAt: CREATED,
+    updatedAt: UPDATED,
+    ...overrides,
+  };
+}
+
+export function makeEnvelope(overrides: Partial<Envelope> = {}): Envelope {
+  return {
+    id: `env-${Math.random().toString(36).slice(2, 9)}`,
+    name: 'Groceries',
+    categoryId: 'cat-groceries',
+    monthlyAmountMinor: 40_000,
+    rollover: true,
+    startMonth: '2026-03',
+    archived: false,
+    sample: false,
+    createdAt: CREATED,
+    updatedAt: UPDATED,
+    ...overrides,
+  };
+}
+
+export function makeNote(overrides: Partial<Note> = {}): Note {
+  return {
+    id: `note-${Math.random().toString(36).slice(2, 9)}`,
+    kind: 'brain-dump',
+    month: null,
+    text: 'Remember the thing.',
+    pinned: false,
+    archived: false,
+    sample: false,
     createdAt: CREATED,
     updatedAt: UPDATED,
     ...overrides,
@@ -47,6 +95,7 @@ export function makeTransaction(overrides: Partial<Transaction> = {}): Transacti
     billOccurrenceId: null,
     debtId: null,
     incomeSourceId: null,
+    accountId: null,
     sample: false,
     createdAt: CREATED,
     updatedAt: UPDATED,
@@ -63,6 +112,7 @@ export function makeIncomeSource(overrides: Partial<IncomeSource> = {}): IncomeS
     anchorDate: '2026-03-13',
     endDate: null,
     active: true,
+    accountId: null,
     notes: '',
     sample: false,
     createdAt: CREATED,
@@ -79,7 +129,9 @@ export function makeBill(overrides: Partial<Bill> = {}): Bill {
     frequency: 'monthly',
     anchorDate: '2026-03-11',
     endDate: null,
+    secondDay: null,
     categoryId: null,
+    accountId: null,
     autoPay: false,
     notes: '',
     active: true,
@@ -111,8 +163,11 @@ export function makeSavingsGoal(overrides: Partial<SavingsGoal> = {}): SavingsGo
   return {
     id: `goal-${Math.random().toString(36).slice(2, 9)}`,
     name: 'Emergency fund',
+    kind: 'goal',
     targetMinor: 100_000,
     startingMinor: 0,
+    monthlyTargetMinor: 0,
+    autoSavePercent: 0,
     targetDate: null,
     color: 'sage',
     notes: '',
@@ -131,6 +186,7 @@ export function makeSavingsEntry(overrides: Partial<SavingsEntry> = {}): Savings
     amountMinor: 5000,
     date: '2026-03-02',
     note: '',
+    accountId: null,
     sample: false,
     createdAt: CREATED,
     updatedAt: UPDATED,

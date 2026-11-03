@@ -1,6 +1,6 @@
 import type { Bill, BillFrequency, BillOccurrence, DateOnly, Transaction } from '@/domain/types';
 import { billOccurrenceSchema, billSchema } from '@/domain/schemas';
-import type { TideDatabase } from '@/db/database';
+import type { HarborDatabase } from '@/db/database';
 import { AppError } from '@/db/errors';
 import { createId, nowIso } from '@/lib/ids';
 import { addMonthsClamped, isValidDateOnly, todayISO } from '@/lib/dates';
@@ -12,7 +12,9 @@ export interface BillInput {
   frequency: BillFrequency;
   anchorDate: DateOnly;
   endDate: DateOnly | null;
+  secondDay?: number | null;
   categoryId: string | null;
+  accountId?: string | null;
   autoPay: boolean;
   notes?: string;
 }
@@ -39,6 +41,14 @@ function validate(input: BillInput, bills: Bill[] = [], ignoreId?: string): stri
   if (input.endDate && input.endDate < input.anchorDate) {
     errors.push('The end date cannot be before the first due date.');
   }
+  if (
+    input.frequency === 'semimonthly' &&
+    input.secondDay !== undefined &&
+    input.secondDay !== null &&
+    (!Number.isInteger(input.secondDay) || input.secondDay < 2 || input.secondDay > 31)
+  ) {
+    errors.push('Choose a second due day between 2 and 31.');
+  }
   const duplicate = bills.find(
     (bill) =>
       bill.id !== ignoreId &&
@@ -51,13 +61,28 @@ function validate(input: BillInput, bills: Bill[] = [], ignoreId?: string): stri
 
 function datesForBill(bill: Bill, from: DateOnly, to: DateOnly): DateOnly[] {
   return occurrenceDatesInRange(
-    { frequency: bill.frequency, anchorDate: bill.anchorDate, endDate: bill.endDate },
+    {
+      frequency: bill.frequency,
+      anchorDate: bill.anchorDate,
+      endDate: bill.endDate,
+      secondDay: bill.secondDay,
+    },
     from,
     to,
   );
 }
 
-export function createBillsRepository(database: TideDatabase, clock: () => DateOnly = todayISO) {
+function secondDayFor(input: BillInput): number | null {
+  return input.frequency === 'semimonthly' ? (input.secondDay ?? 15) : null;
+}
+
+export function createBillsRepository(database: HarborDatabase, clock: () => DateOnly = todayISO) {
+  async function validateAccount(accountId: string | null | undefined): Promise<void> {
+    if (!accountId) return;
+    const account = await database.accounts.get(accountId);
+    if (!account) throw new AppError('VALIDATION', 'That account is no longer available.');
+  }
+
   return {
     async list(): Promise<Bill[]> {
       const rows = await database.bills.toArray();
@@ -106,7 +131,7 @@ export function createBillsRepository(database: TideDatabase, clock: () => DateO
             if (!parsed.success) {
               throw new AppError(
                 'VALIDATION',
-                `Tide could not create a due date for “${bill.name}”.`,
+                `Harbor could not create a due date for “${bill.name}”.`,
                 parsed.error.issues.map((issue) => issue.message),
               );
             }
@@ -125,6 +150,7 @@ export function createBillsRepository(database: TideDatabase, clock: () => DateO
       const existing = await database.bills.toArray();
       const errors = validate(input, existing);
       if (errors.length > 0) throw new AppError('VALIDATION', errors[0]!, errors);
+      await validateAccount(input.accountId);
       const now = nowIso();
       const bill: Bill = {
         id: createId('bill'),
@@ -133,7 +159,9 @@ export function createBillsRepository(database: TideDatabase, clock: () => DateO
         frequency: input.frequency,
         anchorDate: input.anchorDate,
         endDate: input.endDate || null,
+        secondDay: secondDayFor(input),
         categoryId: input.categoryId,
+        accountId: input.accountId ?? null,
         autoPay: input.autoPay,
         notes: input.notes?.trim() ?? '',
         active: true,
@@ -185,6 +213,7 @@ export function createBillsRepository(database: TideDatabase, clock: () => DateO
       const existing = await database.bills.toArray();
       const errors = validate(input, existing, id);
       if (errors.length > 0) throw new AppError('VALIDATION', errors[0]!, errors);
+      await validateAccount(input.accountId);
       const next: Bill = {
         ...current,
         name: input.name.trim(),
@@ -192,7 +221,9 @@ export function createBillsRepository(database: TideDatabase, clock: () => DateO
         frequency: input.frequency,
         anchorDate: input.anchorDate,
         endDate: input.endDate || null,
+        secondDay: secondDayFor(input),
         categoryId: input.categoryId,
+        accountId: input.accountId ?? null,
         autoPay: input.autoPay,
         notes: input.notes?.trim() ?? '',
         updatedAt: nowIso(),
@@ -351,6 +382,7 @@ export function createBillsRepository(database: TideDatabase, clock: () => DateO
             billOccurrenceId: occurrence.id,
             debtId: null,
             incomeSourceId: null,
+            accountId: bill.accountId ?? null,
             sample: occurrence.sample || bill.sample,
             createdAt: now,
             updatedAt: now,

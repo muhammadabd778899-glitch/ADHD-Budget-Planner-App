@@ -22,7 +22,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Tide hit a rendering error.', error, info.componentStack);
+    console.error('Harbor hit a rendering error.', error, info.componentStack);
     if (import.meta.env.DEV) {
       this.setState({
         details: [
@@ -37,7 +37,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <ErrorScreen
-          title="Tide hit an unexpected snag"
+          title="Harbor hit an unexpected snag"
           message="Your saved records were not changed. Reload the app to try again, and export a backup before making any big changes."
           details={this.state.details}
           onRetry={() => window.location.reload()}

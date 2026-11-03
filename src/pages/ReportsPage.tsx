@@ -204,7 +204,7 @@ export function ReportsPage() {
             <EmptyState
               icon="chart"
               title="Reports fill in as you go"
-              description="Add a transaction or pay a bill. Tide will show a clear monthly summary here without asking you to maintain anything extra."
+              description="Add a transaction or pay a bill. Harbor will show a clear monthly summary here without asking you to maintain anything extra."
               action={
                 <ButtonLink to="/spending" variant="secondary" size="sm" icon="plus">
                   Add a transaction
@@ -413,7 +413,7 @@ export function ReportsPage() {
                   <li>Expected paydays are not income until you record them as received.</li>
                 </ul>
                 <ButtonLink to="/help" variant="ghost" size="sm" iconAfter="arrow-right">
-                  Read how Tide calculates
+                  Read how Harbor calculates
                 </ButtonLink>
               </div>
             </CardBody>

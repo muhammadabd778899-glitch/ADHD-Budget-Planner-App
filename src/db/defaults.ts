@@ -149,7 +149,7 @@ export function defaultSettings(): Settings {
     cushionMinor: 0,
     onboardingComplete: false,
     sampleDataLoaded: false,
-    schemaVersion: 2,
+    schemaVersion: 3,
     createdAt: now,
     updatedAt: now,
   };

@@ -11,6 +11,7 @@ import { BillsPage } from '@/pages/BillsPage';
 import { SpendingPage } from '@/pages/SpendingPage';
 import { DebtPage } from '@/pages/DebtPage';
 import { SavingsPage } from '@/pages/SavingsPage';
+import { NotesPage } from '@/pages/NotesPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { HelpPage } from '@/pages/HelpPage';
@@ -44,6 +45,7 @@ function AppRoutes() {
         <Route path="spending" element={<SpendingPage />} />
         <Route path="debt" element={<DebtPage />} />
         <Route path="savings" element={<SavingsPage />} />
+        <Route path="notes" element={<NotesPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="help" element={<HelpPage />} />

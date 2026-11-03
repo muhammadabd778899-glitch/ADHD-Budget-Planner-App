@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { UpdatePrompt } from '@/components/layout/UpdatePrompt';
+import { KeyboardShortcuts } from '@/components/layout/KeyboardShortcuts';
 import { QuickAddDialog } from '@/components/finance/QuickAddDialog';
 import { Icon } from '@/components/ui/Icon';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -20,6 +21,7 @@ function ScrollToTop() {
 
 export function AppShell() {
   const online = useOnlineStatus();
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   return (
     <div className="app-shell">
@@ -38,11 +40,11 @@ export function AppShell() {
       <ScrollToTop />
       <Sidebar />
       <div className="app-main">
-        <TopBar />
+        <TopBar onShowShortcuts={() => setShortcutsOpen(true)} />
         {!online ? (
           <div className="offline-bar">
             <Icon name="offline" size={16} />
-            <span>You are offline. Tide still saves to this device.</span>
+            <span>You are offline. Harbor still saves to this device.</span>
           </div>
         ) : null}
         <main id="main-content" className="page" tabIndex={-1}>
@@ -51,6 +53,7 @@ export function AppShell() {
       </div>
       <MobileNav />
       <QuickAddDialog />
+      <KeyboardShortcuts open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <UpdatePrompt />
     </div>
   );

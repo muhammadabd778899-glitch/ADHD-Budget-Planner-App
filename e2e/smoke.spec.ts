@@ -8,7 +8,7 @@ test('onboards, adds an expense, and keeps it after reload', async ({ page }) =>
   await expect(page.getByRole('heading', { name: /A snapshot of today/i })).toBeVisible();
   await page.getByRole('button', { name: /continue/i }).click();
   await expect(page.getByRole('heading', { name: /When does money arrive/i })).toBeVisible();
-  await page.getByRole('button', { name: /open tide/i }).click();
+  await page.getByRole('button', { name: /open harbor/i }).click();
 
   await expect(page.getByRole('heading', { name: 'Today', level: 1 })).toBeVisible();
   await expect(page.getByText('Safe to spend')).toBeVisible();

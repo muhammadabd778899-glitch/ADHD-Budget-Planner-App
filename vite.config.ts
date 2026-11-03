@@ -12,12 +12,12 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Tide — Calm Budget Planner',
-        short_name: 'Tide',
+        name: 'Harbor — Calm Budget Planner',
+        short_name: 'Harbor',
         description:
           'A calm, local-first budget planner that helps you see what is safe to spend and what comes next.',
-        theme_color: '#1d3430',
-        background_color: '#f7f2e8',
+        theme_color: '#071528',
+        background_color: '#eef3fb',
         display: 'standalone',
         orientation: 'portrait',
         start_url: './',
@@ -27,7 +27,7 @@ export default defineConfig({
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
           {
-            src: 'pwa-512x512.png',
+            src: 'pwa-512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

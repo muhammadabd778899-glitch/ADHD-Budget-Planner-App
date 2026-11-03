@@ -28,6 +28,7 @@ export interface BackupSummary {
 
 export function countPayload(payload: BackupPayload): Record<string, number> {
   return {
+    accounts: payload.accounts.length,
     categories: payload.categories.length,
     incomeSources: payload.incomeSources.length,
     bills: payload.bills.length,
@@ -36,6 +37,8 @@ export function countPayload(payload: BackupPayload): Record<string, number> {
     debts: payload.debts.length,
     savingsGoals: payload.savingsGoals.length,
     savingsEntries: payload.savingsEntries.length,
+    envelopes: payload.envelopes.length,
+    notes: payload.notes.length,
   };
 }
 
@@ -65,6 +68,7 @@ export function validateRelationships(payload: BackupPayload): string[] {
   if (payload.settings.id !== 'app') errors.push('Settings record must use the id "app".');
 
   const categoryIds = new Set(payload.categories.map((category) => category.id));
+  const accountIds = new Set(payload.accounts.map((account) => account.id));
   const billIds = new Set(payload.bills.map((bill) => bill.id));
   const incomeSourceIds = new Set(payload.incomeSources.map((source) => source.id));
   const debtIds = new Set(payload.debts.map((debt) => debt.id));
@@ -74,6 +78,7 @@ export function validateRelationships(payload: BackupPayload): string[] {
   const categoryById = new Map(payload.categories.map((category) => [category.id, category]));
 
   const duplicateChecks: Array<[string, string[]]> = [
+    ['accounts', payload.accounts.map((record) => record.id)],
     ['categories', payload.categories.map((record) => record.id)],
     ['incomeSources', payload.incomeSources.map((record) => record.id)],
     ['bills', payload.bills.map((record) => record.id)],
@@ -82,6 +87,8 @@ export function validateRelationships(payload: BackupPayload): string[] {
     ['debts', payload.debts.map((record) => record.id)],
     ['savingsGoals', payload.savingsGoals.map((record) => record.id)],
     ['savingsEntries', payload.savingsEntries.map((record) => record.id)],
+    ['envelopes', payload.envelopes.map((record) => record.id)],
+    ['notes', payload.notes.map((record) => record.id)],
   ];
   for (const [table, ids] of duplicateChecks) {
     const dupes = duplicates(ids);
@@ -124,6 +131,30 @@ export function validateRelationships(payload: BackupPayload): string[] {
   for (const bill of payload.bills) {
     if (bill.categoryId && !categoryIds.has(bill.categoryId)) {
       errors.push(`Bill "${bill.name}" references a missing category.`);
+    }
+    if (bill.accountId && !accountIds.has(bill.accountId)) {
+      errors.push(`Bill "${bill.name}" references a missing account.`);
+    }
+  }
+
+  for (const envelope of payload.envelopes) {
+    const category = categoryById.get(envelope.categoryId);
+    if (!category) {
+      errors.push(`Envelope "${envelope.name}" references a missing category.`);
+    } else if (category.kind !== 'expense') {
+      errors.push(`Envelope "${envelope.name}" must use an expense category.`);
+    }
+  }
+
+  for (const note of payload.notes) {
+    if (note.kind === 'month' && !note.month) {
+      errors.push('A month note must include its month.');
+    }
+  }
+
+  for (const source of payload.incomeSources) {
+    if (source.accountId && !accountIds.has(source.accountId)) {
+      errors.push(`Income source "${source.name}" references a missing account.`);
     }
   }
 
@@ -185,6 +216,9 @@ export function validateRelationships(payload: BackupPayload): string[] {
     if (transaction.debtId && !debtIds.has(transaction.debtId)) {
       errors.push(`Transaction "${transaction.description}" references a missing debt.`);
     }
+    if (transaction.accountId && !accountIds.has(transaction.accountId)) {
+      errors.push(`Transaction "${transaction.description}" references a missing account.`);
+    }
     if (transaction.billOccurrenceId) {
       if (!occurrenceIds.has(transaction.billOccurrenceId)) {
         errors.push(
@@ -227,6 +261,9 @@ export function validateRelationships(payload: BackupPayload): string[] {
     if (!goalIds.has(entry.goalId)) {
       errors.push(`Savings entry ${entry.id} references a missing goal.`);
     }
+    if (entry.accountId && !accountIds.has(entry.accountId)) {
+      errors.push(`Savings entry ${entry.id} references a missing account.`);
+    }
   }
 
   return errors;
@@ -236,7 +273,7 @@ export function validateBackupInput(input: unknown, rawSize = 0): BackupValidati
   if (rawSize > MAX_BACKUP_BYTES) {
     return {
       ok: false,
-      errors: ['This backup is larger than 15 MB. Tide does not import files of that size.'],
+      errors: ['This backup is larger than 15 MB. Harbor does not import files of that size.'],
     };
   }
   const parsed = backupSchema.safeParse(input);
@@ -269,7 +306,7 @@ export function parseBackupText(text: string): BackupValidationResult {
   if (new TextEncoder().encode(text).length > MAX_BACKUP_BYTES) {
     return {
       ok: false,
-      errors: ['This backup is larger than 15 MB. Tide does not import files of that size.'],
+      errors: ['This backup is larger than 15 MB. Harbor does not import files of that size.'],
     };
   }
   let parsed: unknown;
@@ -284,6 +321,7 @@ export function parseBackupText(text: string): BackupValidationResult {
 export function emptyBackupPayload(settings: BackupPayload['settings']): BackupPayload {
   return {
     settings,
+    accounts: [],
     categories: [],
     incomeSources: [],
     bills: [],
@@ -292,6 +330,8 @@ export function emptyBackupPayload(settings: BackupPayload['settings']): BackupP
     debts: [],
     savingsGoals: [],
     savingsEntries: [],
+    envelopes: [],
+    notes: [],
   };
 }
 

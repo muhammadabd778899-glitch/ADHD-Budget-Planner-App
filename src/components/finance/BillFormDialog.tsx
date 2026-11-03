@@ -25,6 +25,7 @@ import { todayISO } from '@/lib/dates';
 const FREQUENCIES: Array<{ value: Bill['frequency']; label: string }> = [
   { value: 'weekly', label: 'Every week' },
   { value: 'biweekly', label: 'Every 2 weeks' },
+  { value: 'semimonthly', label: 'Twice a month' },
   { value: 'monthly', label: 'Every month' },
   { value: 'quarterly', label: 'Every 3 months' },
   { value: 'yearly', label: 'Every year' },
@@ -55,7 +56,9 @@ export function BillFormDialog({
   const [frequency, setFrequency] = useState<Bill['frequency']>('monthly');
   const [anchorDate, setAnchorDate] = useState(todayISO());
   const [endDate, setEndDate] = useState('');
+  const [secondDay, setSecondDay] = useState('15');
   const [categoryId, setCategoryId] = useState('cat-bills');
+  const [accountId, setAccountId] = useState('');
   const [autoPay, setAutoPay] = useState(false);
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -69,13 +72,17 @@ export function BillFormDialog({
     setFrequency(bill?.frequency ?? 'monthly');
     setAnchorDate(bill?.anchorDate ?? todayISO());
     setEndDate(bill?.endDate ?? '');
+    setSecondDay(String(bill?.secondDay ?? 15));
     setCategoryId(bill?.categoryId ?? 'cat-bills');
+    setAccountId(
+      bill?.accountId ?? snapshot?.accounts.find((account) => !account.archived)?.id ?? '',
+    );
     setAutoPay(bill?.autoPay ?? false);
     setNotes(bill?.notes ?? '');
     setErrors({});
     setFormErrors([]);
     setSubmitting(false);
-  }, [open, bill, currency]);
+  }, [open, bill, currency, snapshot?.accounts]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,7 +92,9 @@ export function BillFormDialog({
       frequency,
       anchorDate,
       endDate,
+      secondDay,
       categoryId: categoryId || null,
+      accountId: accountId || null,
       autoPay,
       notes,
     });
@@ -103,6 +112,17 @@ export function BillFormDialog({
       nextErrors.amount = `Enter an amount greater than zero, with up to ${currencyFractionDigits(currency)} decimal places.`;
       summaries.push(nextErrors.amount);
     }
+    const secondDayNumber = secondDay.trim() === '' ? null : Number(secondDay);
+    if (
+      frequency === 'semimonthly' &&
+      (secondDayNumber === null ||
+        !Number.isInteger(secondDayNumber) ||
+        secondDayNumber < 2 ||
+        secondDayNumber > 31)
+    ) {
+      nextErrors.secondDay = 'Choose a day between 2 and 31.';
+      summaries.push(nextErrors.secondDay);
+    }
     setErrors(nextErrors);
     setFormErrors(summaries);
     if (Object.keys(nextErrors).length > 0 || amountMinor === null) return;
@@ -115,7 +135,9 @@ export function BillFormDialog({
         frequency,
         anchorDate,
         endDate: endDate || null,
+        secondDay: frequency === 'semimonthly' ? secondDayNumber : null,
         categoryId: categoryId || null,
+        accountId: accountId || null,
         autoPay,
         notes,
       };
@@ -134,7 +156,7 @@ export function BillFormDialog({
       open={open}
       onClose={onClose}
       title={bill ? 'Edit bill' : 'Add a bill'}
-      description="Tide reserves unpaid bills in your plan until you mark them paid or skip them."
+      description="Harbor reserves unpaid bills in your plan until you mark them paid or skip them."
       footer={
         <>
           {bill && onArchive ? (
@@ -209,7 +231,9 @@ export function BillFormDialog({
             htmlFor={`${baseId}-anchor`}
             error={errors.anchorDate}
             hint={
-              frequency === 'monthly' ? 'Tide clamps to the last day of shorter months.' : undefined
+              frequency === 'monthly'
+                ? 'Harbor clamps to the last day of shorter months.'
+                : undefined
             }
             required
           >
@@ -232,6 +256,24 @@ export function BillFormDialog({
             />
           </Field>
         </div>
+        {frequency === 'semimonthly' ? (
+          <Field
+            label="Second due day"
+            htmlFor={`${baseId}-second-day`}
+            error={errors.secondDay}
+            hint="The first due day is always the 1st. Shorter months use their last day."
+          >
+            <TextInput
+              id={`${baseId}-second-day`}
+              type="number"
+              min={2}
+              max={31}
+              value={secondDay}
+              onChange={(event) => setSecondDay(event.target.value)}
+              invalid={Boolean(errors.secondDay)}
+            />
+          </Field>
+        ) : null}
         <Field label="Category" htmlFor={`${baseId}-category`}>
           <Select
             id={`${baseId}-category`}
@@ -248,10 +290,27 @@ export function BillFormDialog({
         </Field>
         <Checkbox
           label="Autopay is on"
-          description="Just a reminder. Tide never moves money or charges anything."
+          description="Just a reminder. Harbor never moves money or charges anything."
           checked={autoPay}
           onChange={(event) => setAutoPay(event.target.checked)}
         />
+        {(snapshot?.accounts.length ?? 0) > 1 ? (
+          <Field label="Account" htmlFor={`${baseId}-account`} hint="Where this bill is paid from.">
+            <Select
+              id={`${baseId}-account`}
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
+            >
+              {(snapshot?.accounts ?? [])
+                .filter((account) => !account.archived || account.id === accountId)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+            </Select>
+          </Field>
+        ) : null}
         <Field label="Note (optional)" htmlFor={`${baseId}-notes`}>
           <Textarea
             id={`${baseId}-notes`}

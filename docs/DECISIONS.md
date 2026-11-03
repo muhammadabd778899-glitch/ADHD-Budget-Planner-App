@@ -20,7 +20,7 @@ Status values: **Approved** (implemented), **Deferred**, **Rejected**.
 | D-014 | Deleting a paid bill’s transaction is blocked until marked unpaid                                                  | Approved      | Protects the bill–payment relationship                                |
 | D-015 | Debt payments are expense transactions linked to the debt                                                          | Approved      | Single cash record; payment history and balance reconcile             |
 | D-016 | Debt payoff estimate is optional, assumption-labelled, not advice                                                  | Approved      | Scope and trust boundary                                              |
-| D-017 | Semimonthly = 1st and 15th for v1                                                                                  | Approved      | Simple, predictable; covers common payroll                            |
+| D-017 | Semimonthly bills = 1st plus a user-chosen second day (2–31, default 15); income stays 1st/15th                    | Approved      | Covers real due dates while keeping payroll projection simple         |
 | D-018 | No automatic interest posting or amortisation ledger                                                               | Approved      | Avoids false precision; user records actual payments                  |
 | D-019 | Currency can change; stored minor units are not converted                                                          | Approved      | Prevents silent value corruption; UI warns clearly                    |
 | D-020 | Backups are user-initiated, not automatic                                                                          | Approved      | Browser limits; no false “automatic backup” claim                     |
@@ -34,12 +34,17 @@ Status values: **Approved** (implemented), **Deferred**, **Rejected**.
 | D-028 | Currency defaults to USD; locale/date format configurable                                                          | Approved      | Broad default; user can adjust                                        |
 | D-029 | “Today” is the browser’s local date at load time                                                                   | Approved      | Matches user expectation; date-only values unaffected                 |
 | D-030 | Monthly recurrence clamps to last day of month                                                                     | Approved      | Handles 29/30/31 and leap years predictably                           |
+| D-031 | Accounts are labels, not bank connections; null `accountId` belongs to the main account                            | Approved      | Per-account clarity without bank linking or multi-currency complexity |
+| D-032 | Main account uses settings starting balance/cushion; secondary accounts use opening balance and zero cushion       | Approved      | Keeps one plan-wide cushion and avoids double reserving               |
+| D-033 | Envelopes are guidance from cleared spending; they never reserve cash or change safe to spend                      | Approved      | Avoids double counting with the cushion and bill reservations         |
+| D-034 | Sinking funds may suggest a set-aside from a target or income share; suggestions never move money                  | Approved      | Keeps D-007: the user always confirms transfers                       |
+| D-035 | Brain dump and month notes are local plain text; no rich HTML or financial effect                                  | Approved      | Fast capture with no injection surface and no calculation impact      |
+| D-036 | Schema v3 is additive; older backups receive defaults and a main account on restore                                | Approved      | Preserves existing customer data and backup compatibility             |
 
 ## Open owner questions (non-blocking for v1)
 
 1. Whether to add a dedicated “planned one-off expenses” feature in v2.
-2. Whether to support two custom semimonthly days instead of fixed 1st/15th.
-3. Whether to host the public demo on GitHub Pages or a custom domain.
-4. Whether to add an optional passcode lock (would require an honest security claim).
+2. Whether to host the public demo on GitHub Pages or a custom domain.
+3. Whether to add an optional passcode lock (would require an honest security claim).
 
 None of these changes the v1 data model or core formula.

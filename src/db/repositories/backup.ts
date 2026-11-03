@@ -6,16 +6,19 @@ import {
   validateRelationships,
   type BackupValidationResult,
 } from '@/domain/backup';
-import type { TideDatabase } from '@/db/database';
+import type { HarborDatabase } from '@/db/database';
 import { AppError } from '@/db/errors';
 import { APP_VERSION } from '@/lib/app';
+import { DEFAULT_ACCOUNT_ID } from '@/domain/accounts';
+import { nowIso } from '@/lib/ids';
 
-export function createBackupRepository(database: TideDatabase) {
+export function createBackupRepository(database: HarborDatabase) {
   async function payload(): Promise<BackupPayload> {
     const settings = await database.settings.get('app');
-    if (!settings) throw new AppError('NOT_FOUND', 'Tide settings are missing.');
+    if (!settings) throw new AppError('NOT_FOUND', 'Harbor settings are missing.');
     return {
       settings,
+      accounts: await database.accounts.toArray(),
       categories: await database.categories.toArray(),
       incomeSources: await database.incomeSources.toArray(),
       bills: await database.bills.toArray(),
@@ -24,6 +27,8 @@ export function createBackupRepository(database: TideDatabase) {
       debts: await database.debts.toArray(),
       savingsGoals: await database.savingsGoals.toArray(),
       savingsEntries: await database.savingsEntries.toArray(),
+      envelopes: await database.envelopes.toArray(),
+      notes: await database.notes.toArray(),
     };
   }
 
@@ -34,7 +39,7 @@ export function createBackupRepository(database: TideDatabase) {
       if (errors.length > 0) {
         throw new AppError(
           'STORAGE',
-          'Tide noticed an inconsistency and did not create a misleading backup. Export a copy of your browser storage and contact support.',
+          'Harbor noticed an inconsistency and did not create a misleading backup. Export a copy of your browser storage and contact support.',
           errors.slice(0, 8),
         );
       }
@@ -65,6 +70,7 @@ export function createBackupRepository(database: TideDatabase) {
           'rw',
           [
             database.settings,
+            database.accounts,
             database.categories,
             database.incomeSources,
             database.bills,
@@ -73,9 +79,12 @@ export function createBackupRepository(database: TideDatabase) {
             database.debts,
             database.savingsGoals,
             database.savingsEntries,
+            database.envelopes,
+            database.notes,
           ],
           async () => {
             await database.settings.clear();
+            await database.accounts.clear();
             await database.categories.clear();
             await database.incomeSources.clear();
             await database.bills.clear();
@@ -84,8 +93,11 @@ export function createBackupRepository(database: TideDatabase) {
             await database.debts.clear();
             await database.savingsGoals.clear();
             await database.savingsEntries.clear();
+            await database.envelopes.clear();
+            await database.notes.clear();
 
             await database.settings.add(data.settings);
+            if (data.accounts.length > 0) await database.accounts.bulkPut(data.accounts);
             if (data.categories.length > 0) await database.categories.bulkPut(data.categories);
             if (data.incomeSources.length > 0)
               await database.incomeSources.bulkPut(data.incomeSources);
@@ -101,6 +113,21 @@ export function createBackupRepository(database: TideDatabase) {
             }
             if (data.savingsEntries.length > 0) {
               await database.savingsEntries.bulkPut(data.savingsEntries);
+            }
+            if (data.envelopes.length > 0) await database.envelopes.bulkPut(data.envelopes);
+            if (data.notes.length > 0) await database.notes.bulkPut(data.notes);
+            if (data.accounts.length === 0) {
+              const now = nowIso();
+              await database.accounts.add({
+                id: DEFAULT_ACCOUNT_ID,
+                name: 'Main account',
+                kind: 'checking',
+                openingBalanceMinor: data.settings.startingBalanceMinor,
+                archived: false,
+                sample: false,
+                createdAt: now,
+                updatedAt: now,
+              });
             }
           },
         );

@@ -37,6 +37,26 @@ describe('occurrenceDatesInRange', () => {
     expect(dates).toEqual(['2026-02-01', '2026-02-15', '2026-03-01', '2026-03-15']);
   });
 
+  it('supports a custom second semimonthly day and clamps short months', () => {
+    const dates = occurrenceDatesInRange(
+      { frequency: 'semimonthly', anchorDate: '2026-01-01', secondDay: 30 },
+      '2026-02-01',
+      '2026-03-31',
+    );
+
+    expect(dates).toEqual(['2026-02-01', '2026-02-28', '2026-03-01', '2026-03-30']);
+  });
+
+  it('falls back to the 15th when the second day is out of range', () => {
+    const dates = occurrenceDatesInRange(
+      { frequency: 'semimonthly', anchorDate: '2026-01-01', secondDay: 40 },
+      '2026-02-01',
+      '2026-02-28',
+    );
+
+    expect(dates).toEqual(['2026-02-01', '2026-02-15']);
+  });
+
   it('steps biweekly from the anchor and respects the range', () => {
     const dates = occurrenceDatesInRange(
       { frequency: 'biweekly', anchorDate: '2026-01-01' },

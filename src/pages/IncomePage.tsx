@@ -179,7 +179,7 @@ export function IncomePage() {
 
       <InlineNotice tone="info" title="Expected is not received">
         A projected payday is a plan, not cash. Mark it received when the money lands; that creates
-        the income transaction Tide counts. Expected money never increases safe to spend.
+        the income transaction Harbor counts. Expected money never increases safe to spend.
       </InlineNotice>
 
       <div className="two-column">

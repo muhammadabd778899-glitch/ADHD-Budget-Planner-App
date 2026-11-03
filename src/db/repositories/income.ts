@@ -1,6 +1,6 @@
 import type { IncomeFrequency, IncomeSource } from '@/domain/types';
 import { incomeSourceSchema } from '@/domain/schemas';
-import type { TideDatabase } from '@/db/database';
+import type { HarborDatabase } from '@/db/database';
 import { AppError } from '@/db/errors';
 import { createId, nowIso } from '@/lib/ids';
 import { isValidDateOnly, todayISO } from '@/lib/dates';
@@ -11,10 +11,17 @@ export interface IncomeSourceInput {
   frequency: IncomeFrequency;
   anchorDate: string;
   endDate: string | null;
+  accountId?: string | null;
   notes?: string;
 }
 
-export function createIncomeRepository(database: TideDatabase) {
+export function createIncomeRepository(database: HarborDatabase) {
+  async function validateAccount(accountId: string | null | undefined): Promise<void> {
+    if (!accountId) return;
+    const account = await database.accounts.get(accountId);
+    if (!account) throw new AppError('VALIDATION', 'That account is no longer available.');
+  }
+
   function validate(input: IncomeSourceInput): string[] {
     const errors: string[] = [];
     if (!input.name.trim()) errors.push('Name is required.');
@@ -41,6 +48,7 @@ export function createIncomeRepository(database: TideDatabase) {
     async create(input: IncomeSourceInput): Promise<IncomeSource> {
       const errors = validate(input);
       if (errors.length > 0) throw new AppError('VALIDATION', errors[0]!, errors);
+      await validateAccount(input.accountId);
       const now = nowIso();
       const source: IncomeSource = {
         id: createId('inc'),
@@ -50,6 +58,7 @@ export function createIncomeRepository(database: TideDatabase) {
         anchorDate: input.anchorDate,
         endDate: input.endDate || null,
         active: true,
+        accountId: input.accountId ?? null,
         notes: input.notes?.trim() ?? '',
         sample: false,
         createdAt: now,
@@ -72,6 +81,7 @@ export function createIncomeRepository(database: TideDatabase) {
       if (!current) throw new AppError('NOT_FOUND', 'That income source is no longer here.');
       const errors = validate(input);
       if (errors.length > 0) throw new AppError('VALIDATION', errors[0]!, errors);
+      await validateAccount(input.accountId);
       const next: IncomeSource = {
         ...current,
         name: input.name.trim(),
@@ -79,6 +89,7 @@ export function createIncomeRepository(database: TideDatabase) {
         frequency: input.frequency,
         anchorDate: input.anchorDate,
         endDate: input.endDate || null,
+        accountId: input.accountId ?? null,
         notes: input.notes?.trim() ?? '',
         updatedAt: nowIso(),
       };
