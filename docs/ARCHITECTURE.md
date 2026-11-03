@@ -103,7 +103,8 @@ All writes validate with Zod and throw `AppError` with a user-safe message and c
 
 ## Constraints
 
-- No backend, no accounts, no network dependency.
+- No backend, no user accounts or sign-in, no network dependency.
+- Money accounts are planning labels created by the user, not bank connections.
 - Single-user, single-browser profile.
 - Data is not encrypted; the UI states this plainly.
 - Backup is user-initiated; the app cannot guarantee backups exist.

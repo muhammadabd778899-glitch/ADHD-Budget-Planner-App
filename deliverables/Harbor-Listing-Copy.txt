@@ -1,0 +1,211 @@
+HARBOR — ETSY LISTING COPY (November 2026 build)
+Copy each section into the listing editor. Adjust only the delivery paragraph to match your attached files.
+
+===============================================================
+ETSY / PUBLIC LISTING COPY
+
+Final copy for the current Harbor build (November 2026). Claims are limited to what the product
+actually does. Adjust only the delivery paragraph if your attached files differ.
+
+LISTING TITLE (125 CHARACTERS OR FEWER)
+
+ADHD Budget Planner | Harbor — Safe to Spend, Bills, Envelopes, Sinking Funds, Debt & Savings | Offline, No Subscription
+
+Alternative, shorter:
+
+Harbor | ADHD Budget Planner — Safe to Spend, Bills, Envelopes, Sinking Funds, Debt & Savings | Offline & Private
+
+SHORT DESCRIPTION
+
+A calm, private budget planner built around one clear number: how much is safe to spend before your
+next payday. Works offline after the first load. No bank login, no account, no subscription. Includes
+bill tracking, monthly envelopes, sinking funds, multiple accounts, debt and savings tools, and notes.
+
+FULL DESCRIPTION
+
+ONE NUMBER INSTEAD OF TWELVE TABS
+
+Harbor answers the question that actually matters: **how much can I spend right now without making
+next week harder?**
+
+It takes the cash you have, subtracts the bills still coming before your payday, and protects the
+cushion you choose. The result is one calm number on a navy dashboard, with the full arithmetic
+available whenever you want to check it.
+
+No shame screens. No red walls. No spreadsheet to maintain.
+
+MADE FOR ADHD BRAINS
+
+- **One obvious next step** on Today, not a wall of tasks.
+- **Focus mode** hides the extra cards when a screen feels like too much.
+- **Quick add** and **quick-fill amounts** make recording a purchase take seconds.
+- **Keyboard shortcuts** for the actions you repeat: <kbd>N</kbd> new expense, <kbd>T</kbd> Today,
+  B Bills, ? shortcuts.
+- **Brain dump and month notes** give stray thoughts somewhere to live instead of a transaction field.
+- **Plain language** everywhere, with a built-in guide that explains every rule.
+- **Nothing is marked paid or spent automatically.** You stay in control.
+
+EVERYTHING A REAL MONTH NEEDS
+
+- **Paycheck planning** with weekly, biweekly, semimonthly, monthly, one-time, and irregular income.
+- **Bill list and bill calendar** in one place. Twice-a-month bills can use your own second due day.
+  Paid and skipped history stays visible; overdue bills are clearly outlined; weekend due dates are
+  labelled.
+- **Multiple accounts** for checking, savings, cash, and credit balances. View safe to spend for all
+  accounts together or one account at a time. Accounts are labels only — there is no bank connection.
+- **Monthly envelopes** for expense categories, with optional rollover for unused money.
+- **Sinking funds** for yearly costs such as gifts or insurance, with a suggested monthly set-aside.
+  Harbor suggests; you decide when money moves.
+- **Debt tracking** with recorded payments, honest balances, and a suggested payoff focus (highest
+  interest first, or smallest balance when no rates are entered).
+- **Savings goals** with contributions and withdrawals that do not get mistaken for spending.
+- **Reports** with monthly totals, category breakdowns, and trends.
+- **Backups and CSV exports** you own, with a validated preview before any restore replaces data.
+- **Expected income stays separate** from received income, so a future payday can never make today
+  look safer than it is.
+
+PRIVATE BY DESIGN
+
+- Your data stays in **your browser** on your device.
+- **No account, no bank connection, no cloud sync, no analytics, no trackers.**
+- **Works offline** after the first successful load.
+- **Installable** like an app on desktop, Android, and iPhone/iPad.
+- **One-time purchase. No subscription.**
+
+UP AND RUNNING IN THREE MINUTES
+
+1. Enter money on hand and the cushion you want to protect.
+2. Add one payday and the bills that would hurt to miss.
+3. Glance at safe to spend. That is enough for day one.
+
+Optional sample data lets you explore every screen before entering your own numbers. Every sample
+record is labelled and removable in one step.
+
+LOOK AND FEEL
+
+A premium navy and porcelain interface with warm gold accents, light and dark themes, generous
+spacing, large touch targets, and reduced-motion support. Designed to feel calm on a low-energy day
+and sharp on a good one.
+
+WHAT YOU RECEIVE
+
+- Your **Harbor ZIP download**, containing the customer guide and access instructions.
+- The **hosted Harbor app link** for the fastest start (inside the download, not posted publicly).
+- Optional **sample data** inside the app for a guided first look.
+
+No account is created and no subscription is required. Open the link in a modern browser. After the
+first load, Harbor can run offline and can be installed to your home screen.
+
+> Seller note: keep the hosted link inside the purchased ZIP rather than in the public listing.
+> Do not promise lifetime updates, device sync, bank connections, automatic money movement, or
+> financial advice.
+
+REQUIREMENTS
+
+- A modern browser: Chrome, Edge, Safari, Firefox, or a Chromium-based Android browser.
+- JavaScript and browser storage (IndexedDB) enabled.
+- Internet access for the first load and for receiving app updates.
+- For moving data between browsers or devices, use the built-in JSON backup. There is no automatic
+  sync.
+
+HONEST LIMITS
+
+Harbor is a planning tool, not a bank, accountant, lender, tax tool, or financial adviser. It does not
+connect to financial institutions, import transactions, sync between devices, move money
+automatically, post interest automatically, or guarantee affordability. Accounts, envelopes, and
+sinking-fund suggestions are planning labels and guidance only. Payoff estimates are rough guides,
+not promises. Data is stored locally but is not encrypted by Harbor; keep backups and protect your
+browser profile.
+
+FREQUENTLY ASKED QUESTIONS
+
+Is this a subscription?
+No. It is a one-time purchase.
+
+Does it connect to my bank?
+No. You enter what you want to track. “Accounts” are names you create, such as Main account or Cash
+wallet. Harbor never asks for bank credentials.
+
+Does it include envelopes and sinking funds?
+Yes. Envelopes set a monthly limit per expense category, with optional rollover. Sinking funds help
+you save for recurring yearly costs and can suggest a monthly set-aside. Neither moves money by
+itself.
+
+Can I track more than one account?
+Yes. Add accounts in Settings, then choose an account on a record. Safe to spend can be viewed for all
+accounts or a single account. This is for tracking where money lives, not for sharing a budget
+between people.
+
+Does it move money or pay bills automatically?
+No. Harbor records what you tell it. You mark bills paid and confirm savings transfers yourself.
+
+Can I keep notes in it?
+Yes. Brain-dump notes capture quick thoughts, and month notes keep a short record tied to a specific
+month. Notes are plain text and stay on your device.
+
+Where is my data stored?
+In your browser's local storage on your device. It does not go to a server. Use the built-in backup
+to move it or protect it.
+
+Will it work on my phone?
+Yes. It runs in a modern mobile browser and can be added to your home screen.
+
+What happens if I clear my browser data?
+The local data is removed. That is why Harbor includes versioned JSON backups and a validated restore
+flow. Download a backup regularly.
+
+Can two people or two devices share one budget?
+Not automatically. You can move a backup file between devices, but there is no live sync.
+
+Does it tell me what to pay off first?
+It suggests a focus using highest interest first, or smallest balance when no rates are entered.
+That is a common order, not financial advice.
+
+Can I use a currency other than USD?
+Yes. Harbor supports 20 common currencies. Changing the currency relabels amounts; it does not convert
+them.
+
+ETSY TAGS (13, EACH 20 CHARACTERS OR FEWER)
+
+adhd budget planner
+budget app
+paycheck budget
+bill tracker
+debt tracker
+savings tracker
+sinking fund
+cash envelopes
+offline budget
+no subscription
+digital download
+budget dashboard
+adhd friendly
+
+POSITIONING NOTES (NOT FOR THE LISTING BODY)
+
+Harbor now matches the competitor on the household features that were previously missing: monthly
+envelopes, sinking funds, multi-account views, custom semimonthly bill timing, and month notes.
+
+Harbor's honest advantages are different and easier to defend:
+
+Area | Harbor | Why a buyer cares
+
+Core promise | One safe-to-spend number with a documented formula | Less decision fatigue than a dashboard of totals
+Privacy | Local browser storage, no account, no bank login | Nothing sensitive leaves the device
+Offline | Installable PWA, app shell cached after first load | Works on a plane, on bad Wi-Fi, or during a no-spend day
+Bill clarity | List **and** calendar, custom twice-a-month day, paid/skipped history | Fewer missed due dates without visual noise
+Household tools | Accounts, envelopes, sinking funds, and notes without a subscription | Room for real life without extra apps
+Data trust | Integer money math, expected vs received income separated, validated backups | Numbers do not drift or double count
+ADHD-specific UX | Focus mode, Right Now, quick-fill amounts, brain dump, keyboard shortcuts | Less friction on low-energy days
+Cost | One-time purchase, no subscription | No recurring charge for a personal planner
+
+Avoid these claims unless the feature is added and verified:
+
+- cloud sync or multi-device live sync
+- bank connections or automatic imports
+- named theme packs beyond light/dark/system
+- a demo spend cap or trial mode
+- automatic transfers or automatic bill payment
+- milestone badges
+- financial, credit, tax, or investment advice
+

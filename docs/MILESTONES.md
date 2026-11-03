@@ -1,18 +1,19 @@
 # Milestones
 
-| Milestone | Scope                                                               | Status   |
-| --------- | ------------------------------------------------------------------- | -------- |
-| M0        | Product spec, architecture, data model, acceptance, decisions, plan | Complete |
-| M1        | Foundation, visual system, shell, routing, design tokens            | Complete |
-| M2        | Persistence, migration, repositories, validation, backups           | Complete |
-| M3        | Income, planning windows, paydays, expected vs received             | Complete |
-| M4        | Bills, occurrences, statuses, payment linkage                       | Complete |
-| M5        | Spending, dashboard, safe-to-spend formula                          | Complete |
-| M6        | Debt, savings, reports                                              | Complete |
-| M7        | ADHD-friendly UX, accessibility, calm copy, reduced motion          | Complete |
-| M8        | Offline, PWA, backup, portability                                   | Complete |
-| M9        | Release, docs, verification, deployment                             | Complete |
-| M10       | Premium navy redesign, ease-of-use upgrades, customer docs          | Complete |
+| Milestone | Scope                                                                   | Status   |
+| --------- | ----------------------------------------------------------------------- | -------- |
+| M0        | Product spec, architecture, data model, acceptance, decisions, plan     | Complete |
+| M1        | Foundation, visual system, shell, routing, design tokens                | Complete |
+| M2        | Persistence, migration, repositories, validation, backups               | Complete |
+| M3        | Income, planning windows, paydays, expected vs received                 | Complete |
+| M4        | Bills, occurrences, statuses, payment linkage                           | Complete |
+| M5        | Spending, dashboard, safe-to-spend formula                              | Complete |
+| M6        | Debt, savings, reports                                                  | Complete |
+| M7        | ADHD-friendly UX, accessibility, calm copy, reduced motion              | Complete |
+| M8        | Offline, PWA, backup, portability                                       | Complete |
+| M9        | Release, docs, verification, deployment                                 | Complete |
+| M10       | Premium navy redesign, ease-of-use upgrades, customer docs              | Complete |
+| M11       | Accounts, envelopes, sinking funds, notes, semimonthly bills, schema v3 | Complete |
 
 ## Milestone notes
 
@@ -34,6 +35,11 @@
   payoff focus, and Today gained Focus mode, Right Now, and a runway. Quick-fill amounts, keyboard
   shortcuts, centred dialogs, premium motion with reduced-motion fallbacks, and expanded customer
   and listing copy complete the ease-of-use pass. Deployment configuration was left untouched.
+- **M11:** The household upgrade adds named accounts with account-scoped safe to spend, semimonthly
+  bills with a custom second due day, monthly category envelopes, sinking funds with suggested
+  set-asides, and brain-dump/month notes. Schema v3 migrates existing data additively, and older
+  backups restore with defaults. Verification covers domain functions, repository transactions,
+  migration, backup round trips, and the production build.
 
 ## Verification evidence
 

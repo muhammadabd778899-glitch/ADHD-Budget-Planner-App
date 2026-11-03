@@ -41,6 +41,7 @@ Each item is testable. Milestone status is recorded in `docs/MILESTONES.md`.
 - [x] Create/edit/archive recurring and one-time bills.
 - [x] Occurrences generated lazily and deterministically.
 - [x] Monthly clamping, leap year, quarterly, yearly, and weekly recurrence tests.
+- [x] Semimonthly bills use the 1st plus a configurable second due day, clamped to month length.
 - [x] Paid, skipped, unpaid, and derived overdue states.
 - [x] Mark paid creates exactly one linked expense transaction.
 - [x] Mark unpaid removes the linked transaction after confirmation.
@@ -105,6 +106,22 @@ Each item is testable. Milestone status is recorded in `docs/MILESTONES.md`.
 - [x] Customer guide rewritten with setup, screen-by-screen guidance, workflows, backup, offline, privacy, and troubleshooting.
 - [x] Listing copy expanded and paired with an explicit list of unsupported claims.
 - [x] Deployment files untouched; production build verified with the `/ADHD-Budget-Planner-App/` base path.
+
+## Household upgrade and schema v3 (M11)
+
+- [x] Accounts can be created, edited, archived, and restored; the main account cannot be archived.
+- [x] Editing the main account keeps `settings.startingBalanceMinor` in sync.
+- [x] Records can be assigned to an account; records with no account belong to the main account.
+- [x] Safe to spend can be viewed for all accounts or one account without changing the global result.
+- [x] A secondary account uses its own opening balance and a zero cushion.
+- [x] Monthly envelopes compute cleared category spending, optional rollover, and overspend calmly.
+- [x] Envelopes never reserve cash or change safe to spend; one active envelope per category.
+- [x] Savings goals support a sinking-fund kind, monthly target, and income-share suggestion.
+- [x] Suggestions never create a transaction without an explicit user action.
+- [x] Brain-dump and month notes support create, edit, pin, archive, restore, and delete.
+- [x] Schema v3 migration preserves existing records and seeds the main account.
+- [x] Older backups restore with defaults and a main account when needed.
+- [x] Sample data includes labelled envelopes and notes and removes them without touching real data.
 
 ## Release (M9)
 
